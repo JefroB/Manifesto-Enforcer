@@ -27,9 +27,11 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 
 ### **📚 Advanced Codebase Intelligence**
 - **Smart Indexing** - Understands your entire project structure
+- **Persistent Storage** - Saves index across VSCode sessions (24hr cache)
 - **Symbol Mapping** - Tracks functions, classes, interfaces across files
 - **Dependency Analysis** - Maps imports/exports and relationships
 - **Context-Aware Editing** - Generates code that fits existing patterns
+- **Auto Re-indexing** - Detects file changes and suggests updates
 
 ### **🔍 Enterprise MR/PR Analysis**
 - **Risk Assessment** - LOW/MEDIUM/HIGH deployment risk scoring
@@ -43,6 +45,15 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 - **Smart Rule Selection** - Only sends relevant rules per request
 - **Automatic Enforcement** - Ensures all code meets standards
 - **Custom Rule Support** - Adapt to your company's specific requirements
+- **Smart Generation** - Creates project-specific manifestos from codebase analysis
+- **Multi-Type Support** - Separate dev, QA, security, API manifestos
+
+### **📖 Enterprise Glossary System**
+- **Team Acronym Management** - Define and manage company-specific terms
+- **Smart Integration** - Automatically adds definitions to AI responses
+- **Import/Export** - JSON and CSV format support for team sharing
+- **Usage Analytics** - Track which terms are most referenced
+- **Persistent Storage** - Saves glossary across sessions
 
 ## 🏢 Enterprise Value Proposition
 
@@ -91,12 +102,20 @@ code --install-extension manifesto-enforcer-0.0.5-alpha.vsix
 3. See "Indexed X files" status
 ```
 
-### **3. Try Core Features**
+### **3. Set Up Glossary (Optional)**
+```
+1. Click "📖 Manage Glossary"
+2. Add your team's acronyms and terms
+3. Import existing glossary from JSON/CSV
+4. Terms automatically enhance AI responses
+```
+
+### **4. Try Core Features**
 ```
 # Basic chat
 "Hello, can you help me with manifesto-compliant development?"
 
-# File analysis  
+# File analysis
 "show me extension.ts"
 
 # Smart editing
@@ -104,6 +123,9 @@ code --install-extension manifesto-enforcer-0.0.5-alpha.vsix
 
 # MR analysis
 "analyze https://github.com/owner/repo/pull/123"
+
+# Glossary-enhanced responses
+"Explain API authentication" (automatically includes API definition)
 ```
 
 ## 🔧 Configuration
@@ -138,6 +160,26 @@ When using Amazon Q, the Manifesto Enforcer extension automatically:
 - **Prioritizes relevant files** based on your request
 - **Sends compact manifesto rules** instead of full text
 - **Manages conversation length** to prevent context overflow
+- **Includes relevant glossary terms** without exceeding limits
+
+### **Glossary Management**
+Create `glossary.json` in your project root, or use the built-in manager:
+
+```json
+{
+  "API": "Application Programming Interface",
+  "SLA": "Service Level Agreement",
+  "CRUD": "Create, Read, Update, Delete",
+  "JWT": "JSON Web Token",
+  "CI/CD": "Continuous Integration/Continuous Deployment"
+}
+```
+
+**Or use the UI:**
+1. Click "📖 Manage Glossary" in Piggie's chat
+2. Add terms manually or import from file
+3. Export for team sharing
+4. Terms automatically enhance all AI responses
 
 ## 🎯 Use Cases
 
@@ -158,6 +200,49 @@ When using Amazon Q, the Manifesto Enforcer extension automatically:
 - **Deployment Safety** - Risk assessment before production releases
 - **Security Validation** - Vulnerability scanning in every change
 - **Performance Monitoring** - Ensure changes meet performance standards
+
+## 🎯 Complete Feature Showcase
+
+### **🔄 Persistent Intelligence**
+```bash
+# Index once, use forever (until files change significantly)
+1. Click "📚 Index Codebase"
+2. Close VSCode, reopen project
+3. Index automatically restored
+4. File changes trigger re-index suggestions
+```
+
+### **📖 Glossary-Enhanced Responses**
+```bash
+# Before glossary:
+User: "How do I implement JWT authentication?"
+AI: "To implement JWT authentication..."
+
+# After adding JWT to glossary:
+User: "How do I implement JWT authentication?"
+AI: "To implement JWT authentication...
+
+📖 Glossary Context:
+**JWT**: JSON Web Token - A compact, URL-safe token format"
+```
+
+### **🧠 Smart Manifesto Generation**
+```bash
+# Analyzes your codebase and suggests:
+"💡 No manifesto found - Generate project-specific manifesto
+🧪 QA Manifesto - Generate testing standards (found Jest tests)
+🔒 Security Manifesto - Create security guidelines (found auth patterns)
+⚛️ Frontend Manifesto - Create React component standards (found JSX)"
+```
+
+### **🔍 Intelligent File Change Detection**
+```bash
+# Automatically monitors your codebase:
+- Detects when 5+ files change
+- Suggests re-indexing for updated intelligence
+- Debounces rapid changes to avoid spam
+- Maintains performance with smart thresholds
+```
 
 ## 🔍 MR/PR Analysis Example
 
@@ -260,23 +345,36 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 
 ## 📊 Roadmap
 
-### **v0.1.0 - Enterprise Ready**
-- [ ] GitHub/GitLab API authentication
-- [ ] Slack/Teams integration for MR analysis
-- [ ] Custom rule engine for company standards
+### **v0.0.5-alpha - CURRENT ✅**
+- [x] **Multi-AI Support** (Auggie, Amazon Q, Cline, Local)
+- [x] **Persistent Codebase Indexing** with 24hr cache
+- [x] **Enterprise Glossary System** with import/export
+- [x] **Smart Manifesto Generation** from codebase analysis
+- [x] **File Change Detection** with auto re-index suggestions
+- [x] **MR/PR Analysis System** for automated code review
+- [x] **Token Optimization** for enterprise AI limits
+- [x] **Context-Aware Code Generation**
+
+### **v0.1.0 - Enterprise Integration**
+- [ ] GitHub/GitLab API authentication for real MR analysis
+- [ ] Slack/Teams integration for MR analysis notifications
+- [ ] Custom rule engine for company-specific standards
 - [ ] Metrics dashboard for compliance tracking
+- [ ] Bulk glossary management for large teams
 
 ### **v0.2.0 - Advanced Automation**
 - [ ] JIRA integration for high-risk changes
 - [ ] CI/CD pipeline integration
-- [ ] Automated deployment gates
+- [ ] Automated deployment gates based on risk scores
 - [ ] Performance regression detection
+- [ ] Advanced manifesto templates (security, performance, etc.)
 
 ### **v0.3.0 - Enterprise Scale**
-- [ ] Multi-repository analysis
-- [ ] Team compliance dashboards
-- [ ] Custom AI model integration
+- [ ] Multi-repository analysis and cross-project intelligence
+- [ ] Team compliance dashboards with analytics
+- [ ] Custom AI model integration (Azure OpenAI, etc.)
 - [ ] Enterprise SSO support
+- [ ] Advanced glossary features (synonyms, categories, etc.)
 
 ## 📄 License
 

@@ -15,6 +15,7 @@ let codebaseIndex: Map<string, any> = new Map();
 let isCodebaseIndexed = false;
 let projectStructure: any = null;
 let manifestoIndex: any = null;
+let codebaseIndexTimestamp = 0;
 
 // Amazon Q optimization state
 let qContextWindow: any[] = [];
@@ -25,6 +26,10 @@ let qContextPriority: Map<string, number> = new Map();
 // MR/PR integration state
 let mrCache: Map<string, any> = new Map();
 let gitConfig: any = null;
+
+// Glossary system state
+let projectGlossary: Map<string, any> = new Map();
+let isGlossaryIndexed = false;
 
 /**
  * Extension activation
@@ -38,11 +43,29 @@ export function activate(context: vscode.ExtensionContext) {
     // Index manifesto for token efficiency
     indexManifesto();
 
-    // Register chat provider
-    const provider = new PiggieChatProvider(context.extensionUri);
+    // Register chat provider with context for persistence
+    const provider = new PiggieChatProvider(context.extensionUri, context);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider('piggieChatPanel', provider)
     );
+
+    // Load saved codebase index on startup
+    loadCodebaseIndex(context).then(loaded => {
+        if (loaded) {
+            console.log('💾 Restored codebase index from previous session');
+            isCodebaseIndexed = true;
+        }
+    });
+
+    // Load saved glossary on startup
+    loadGlossaryFromStorage(context).then(loaded => {
+        if (loaded) {
+            console.log('📖 Restored glossary from previous session');
+        }
+    });
+
+    // Setup file change detection for auto re-indexing
+    setupFileChangeDetection();
 
     // Register commands
     context.subscriptions.push(
@@ -111,8 +134,11 @@ async function saveModeSettings(): Promise<void> {
 class PiggieChatProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'piggieChatPanel';
     private _view?: vscode.WebviewView;
+    private _context?: vscode.ExtensionContext;
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(private readonly _extensionUri: vscode.Uri, context?: vscode.ExtensionContext) {
+        this._context = context;
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -218,7 +244,23 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                     }
                     break;
                 case 'indexCodebase':
+                    console.log('🔍 DEBUG: Received indexCodebase command');
                     await this.handleCodebaseIndexing();
+                    break;
+                case 'addGlossaryTerm':
+                    await this.handleAddGlossaryTerm(data.term, data.definition);
+                    break;
+                case 'removeGlossaryTerm':
+                    await this.handleRemoveGlossaryTerm(data.term);
+                    break;
+                case 'toggleGlossary':
+                    this.handleToggleGlossary();
+                    break;
+                case 'importGlossary':
+                    await this.handleImportGlossary();
+                    break;
+                case 'exportGlossary':
+                    await this.handleExportGlossary();
                     break;
             }
         });
@@ -273,9 +315,12 @@ console.log(greet("Developer"));`;
 
     private sendSecureResponse(content: string): void {
         if (this._view) {
+            // Enhance response with glossary context
+            const enhancedContent = enhanceResponseWithGlossary(content);
+
             this._view.webview.postMessage({
                 command: 'addMessage',
-                content: content
+                content: enhancedContent
             });
         }
     }
@@ -300,24 +345,46 @@ console.log(greet("Developer"));`;
         try {
             this.sendSecureResponse('📚 Starting codebase indexing...');
 
-            // Index the codebase (placeholder for now)
+            // Index the codebase
             await this.indexWorkspaceFiles();
 
             isCodebaseIndexed = true;
+            codebaseIndexTimestamp = Date.now();
             this.updateIndexStatus();
-            this.sendSecureResponse('✅ Codebase indexed successfully! Piggie now has full project awareness.');
+
+            // Save the index for persistence across sessions
+            if (this._context) {
+                await saveCodebaseIndex(this._context);
+            }
+
+            // Analyze manifesto opportunities based on codebase
+            const manifestoAnalysis = await analyzeManifestoOpportunities();
+
+            let response = `✅ Codebase indexed successfully! Piggie now has full project awareness.\n\n**Indexed:** ${codebaseIndex.size} files\n**Symbols found:** ${projectStructure?.symbols?.size || 0}\n**Dependencies mapped:** ${projectStructure?.dependencies?.size || 0}\n**💾 Saved:** Index persisted for future sessions`;
+
+            if (manifestoAnalysis.suggestions.length > 0) {
+                response += `\n\n📋 **Smart Manifesto Opportunities:**\n${manifestoAnalysis.suggestions.join('\n')}`;
+            }
+
+            this.sendSecureResponse(response);
 
         } catch (error) {
-            this.sendSecureResponse('❌ Failed to index codebase: ' + error);
+            console.error('Indexing failed:', error);
+            this.sendSecureResponse('❌ Failed to index codebase: ' + (error instanceof Error ? error.message : String(error)));
+            isCodebaseIndexed = false;
             this.updateIndexStatus();
         }
     }
 
     private async indexWorkspaceFiles(): Promise<void> {
+        console.log('🔍 DEBUG: Starting workspace file indexing');
+
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) {
             throw new Error('No workspace folder open');
         }
+
+        console.log('🔍 DEBUG: Workspace folder found:', workspaceFolder.uri.fsPath);
 
         // Find all relevant files
         const files = await vscode.workspace.findFiles(
@@ -325,7 +392,10 @@ console.log(greet("Developer"));`;
             '**/node_modules/**'
         );
 
+        console.log('🔍 DEBUG: Found files:', files.length);
+
         codebaseIndex.clear();
+        let processedFiles = 0;
 
         for (const file of files.slice(0, 100)) { // Limit for performance
             try {
@@ -344,6 +414,14 @@ console.log(greet("Developer"));`;
                     imports: this.extractImports(text),
                     exports: this.extractExports(text)
                 });
+
+                processedFiles++;
+
+                // Send progress update every 10 files
+                if (processedFiles % 10 === 0) {
+                    console.log(`🔍 DEBUG: Processed ${processedFiles} files`);
+                }
+
             } catch (error) {
                 console.warn('Failed to read file:', file.fsPath, error);
             }
@@ -352,7 +430,12 @@ console.log(greet("Developer"));`;
         // Build project structure for context awareness
         projectStructure = this.buildProjectStructure();
 
-        console.log(`📚 Indexed ${codebaseIndex.size} files with full symbol awareness`);
+        // Build project glossary from codebase analysis
+        // await buildProjectGlossary(); // TODO: Implement glossary building
+
+        console.log(`📚 DEBUG: Indexed ${codebaseIndex.size} files with full symbol awareness`);
+        console.log(`📚 DEBUG: Project structure - symbols: ${projectStructure?.symbols?.size}, dependencies: ${projectStructure?.dependencies?.size}`);
+        console.log(`📚 DEBUG: Glossary - ${projectGlossary.size} terms identified`);
     }
 
     private async extractSymbols(content: string, filePath: string): Promise<any[]> {
@@ -444,6 +527,178 @@ console.log(greet("Developer"));`;
         }
 
         return structure;
+    }
+
+    /**
+     * GLOSSARY MANAGEMENT HANDLERS
+     */
+    private async handleAddGlossaryTerm(term: string, definition: string): Promise<void> {
+        try {
+            if (!term || !definition) {
+                this.sendSecureResponse('❌ Both term and definition are required');
+                return;
+            }
+
+            // Add to project glossary
+            projectGlossary.set(term.toUpperCase(), {
+                term: term,
+                definition: definition,
+                dateAdded: Date.now(),
+                usage: 0
+            });
+
+            // Save to workspace storage
+            if (this._context) {
+                await saveGlossaryToStorage(this._context);
+            }
+
+            this.updateGlossaryStatus();
+            this.sendSecureResponse(`✅ Added term: **${term}** - ${definition}`);
+
+        } catch (error) {
+            this.sendSecureResponse('❌ Failed to add glossary term: ' + error);
+        }
+    }
+
+    private async handleRemoveGlossaryTerm(term: string): Promise<void> {
+        try {
+            const upperTerm = term.toUpperCase();
+            if (projectGlossary.has(upperTerm)) {
+                projectGlossary.delete(upperTerm);
+
+                // Save to workspace storage
+                if (this._context) {
+                    await saveGlossaryToStorage(this._context);
+                }
+
+                this.updateGlossaryStatus();
+                this.sendSecureResponse(`✅ Removed term: **${term}**`);
+            } else {
+                this.sendSecureResponse(`❌ Term not found: **${term}**`);
+            }
+
+        } catch (error) {
+            this.sendSecureResponse('❌ Failed to remove glossary term: ' + error);
+        }
+    }
+
+    private handleToggleGlossary(): void {
+        if (this._view) {
+            this._view.webview.postMessage({
+                command: 'toggleGlossaryPanel'
+            });
+        }
+    }
+
+    private async handleImportGlossary(): Promise<void> {
+        try {
+            const options: vscode.OpenDialogOptions = {
+                canSelectMany: false,
+                openLabel: 'Import Glossary',
+                filters: {
+                    'JSON files': ['json'],
+                    'CSV files': ['csv'],
+                    'Text files': ['txt']
+                }
+            };
+
+            const fileUri = await vscode.window.showOpenDialog(options);
+            if (fileUri && fileUri[0]) {
+                const content = await vscode.workspace.fs.readFile(fileUri[0]);
+                const text = Buffer.from(content).toString('utf8');
+
+                let importedCount = 0;
+
+                if (fileUri[0].fsPath.endsWith('.json')) {
+                    const glossaryData = JSON.parse(text);
+                    for (const [term, definition] of Object.entries(glossaryData)) {
+                        projectGlossary.set(term.toUpperCase(), {
+                            term: term,
+                            definition: definition as string,
+                            dateAdded: Date.now(),
+                            usage: 0
+                        });
+                        importedCount++;
+                    }
+                } else if (fileUri[0].fsPath.endsWith('.csv')) {
+                    const lines = text.split('\n');
+                    for (const line of lines.slice(1)) { // Skip header
+                        const [term, definition] = line.split(',').map(s => s.trim());
+                        if (term && definition) {
+                            projectGlossary.set(term.toUpperCase(), {
+                                term: term,
+                                definition: definition,
+                                dateAdded: Date.now(),
+                                usage: 0
+                            });
+                            importedCount++;
+                        }
+                    }
+                }
+
+                // Save to workspace storage
+                if (this._context) {
+                    await saveGlossaryToStorage(this._context);
+                }
+
+                this.updateGlossaryStatus();
+                this.sendSecureResponse(`✅ Imported ${importedCount} glossary terms`);
+            }
+
+        } catch (error) {
+            this.sendSecureResponse('❌ Failed to import glossary: ' + error);
+        }
+    }
+
+    private async handleExportGlossary(): Promise<void> {
+        try {
+            if (projectGlossary.size === 0) {
+                this.sendSecureResponse('❌ No glossary terms to export');
+                return;
+            }
+
+            const options: vscode.SaveDialogOptions = {
+                saveLabel: 'Export Glossary',
+                filters: {
+                    'JSON files': ['json'],
+                    'CSV files': ['csv']
+                }
+            };
+
+            const fileUri = await vscode.window.showSaveDialog(options);
+            if (fileUri) {
+                let content = '';
+
+                if (fileUri.fsPath.endsWith('.json')) {
+                    const glossaryObj: any = {};
+                    for (const [key, value] of projectGlossary) {
+                        glossaryObj[value.term] = value.definition;
+                    }
+                    content = JSON.stringify(glossaryObj, null, 2);
+                } else if (fileUri.fsPath.endsWith('.csv')) {
+                    content = 'Term,Definition\n';
+                    for (const [key, value] of projectGlossary) {
+                        content += `"${value.term}","${value.definition}"\n`;
+                    }
+                }
+
+                await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, 'utf8'));
+                this.sendSecureResponse(`✅ Exported ${projectGlossary.size} terms to ${fileUri.fsPath}`);
+            }
+
+        } catch (error) {
+            this.sendSecureResponse('❌ Failed to export glossary: ' + error);
+        }
+    }
+
+    private updateGlossaryStatus(): void {
+        if (this._view) {
+            this._view.webview.postMessage({
+                command: 'updateGlossaryStatus',
+                termCount: projectGlossary.size,
+                terms: Array.from(projectGlossary.values())
+            });
+        }
     }
 
     private updateIndexStatus(): void {
@@ -723,6 +978,113 @@ console.log(greet("Developer"));`;
                 .q-optimization.active {
                     display: inline-block;
                 }
+                .glossary-controls {
+                    display: flex;
+                    gap: 8px;
+                    margin-bottom: 10px;
+                    align-items: center;
+                    padding: 8px;
+                    background: var(--vscode-editor-background);
+                    border-radius: 4px;
+                    border: 1px solid var(--vscode-widget-border);
+                }
+                .glossary-button {
+                    background: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 12px;
+                }
+                .glossary-button:hover {
+                    background: var(--vscode-button-hoverBackground);
+                }
+                .glossary-status {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                }
+                .glossary-status.has-terms {
+                    color: var(--vscode-charts-green);
+                }
+                .glossary-panel {
+                    background: var(--vscode-editor-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 4px;
+                    padding: 12px;
+                    margin-bottom: 10px;
+                }
+                .glossary-panel h4 {
+                    margin: 0 0 10px 0;
+                    color: var(--vscode-foreground);
+                }
+                .glossary-input {
+                    display: flex;
+                    gap: 8px;
+                    margin-bottom: 10px;
+                }
+                .glossary-input input {
+                    flex: 1;
+                    padding: 6px;
+                    background: var(--vscode-input-background);
+                    color: var(--vscode-input-foreground);
+                    border: 1px solid var(--vscode-input-border);
+                    border-radius: 3px;
+                }
+                .add-term-button {
+                    background: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 12px;
+                }
+                .glossary-list {
+                    max-height: 200px;
+                    overflow-y: auto;
+                    margin-bottom: 10px;
+                }
+                .glossary-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 6px;
+                    background: var(--vscode-list-inactiveSelectionBackground);
+                    margin-bottom: 4px;
+                    border-radius: 3px;
+                }
+                .glossary-term {
+                    font-weight: bold;
+                    color: var(--vscode-symbolIcon-keywordForeground);
+                }
+                .glossary-definition {
+                    color: var(--vscode-foreground);
+                    margin-left: 8px;
+                }
+                .delete-term {
+                    background: var(--vscode-errorForeground);
+                    color: white;
+                    border: none;
+                    padding: 2px 6px;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    font-size: 10px;
+                }
+                .glossary-actions {
+                    display: flex;
+                    gap: 8px;
+                    justify-content: space-between;
+                }
+                .glossary-actions button {
+                    background: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 11px;
+                }
             </style>
         </head>
         <body>
@@ -749,7 +1111,27 @@ console.log(greet("Developer"));`;
                     <span id="indexStatus" class="index-status">Not indexed</span>
                     <span id="qOptimization" class="q-optimization">🟠 Q-Optimized</span>
                 </div>
-                
+
+                <div class="glossary-controls">
+                    <button id="glossaryButton" class="glossary-button">📖 Manage Glossary</button>
+                    <span id="glossaryStatus" class="glossary-status">No terms defined</span>
+                </div>
+
+                <div id="glossaryPanel" class="glossary-panel" style="display: none;">
+                    <h4>📖 Project Glossary</h4>
+                    <div class="glossary-input">
+                        <input type="text" id="termInput" placeholder="Acronym/Term (e.g., API, SLA)" />
+                        <input type="text" id="definitionInput" placeholder="Definition (e.g., Application Programming Interface)" />
+                        <button id="addTermButton" class="add-term-button">➕ Add Term</button>
+                    </div>
+                    <div id="glossaryList" class="glossary-list"></div>
+                    <div class="glossary-actions">
+                        <button id="importGlossaryButton" class="import-button">📥 Import from File</button>
+                        <button id="exportGlossaryButton" class="export-button">📤 Export Glossary</button>
+                        <button id="closeGlossaryButton" class="close-button">✖️ Close</button>
+                    </div>
+                </div>
+
                 <div id="messages" class="messages"></div>
                 
                 <div class="bottom-controls">
@@ -875,6 +1257,7 @@ console.log(greet("Developer"));`;
                 });
 
                 document.getElementById('indexButton').addEventListener('click', function() {
+                    console.log('🔍 DEBUG: Index button clicked');
                     const button = this;
                     const status = document.getElementById('indexStatus');
 
@@ -883,7 +1266,43 @@ console.log(greet("Developer"));`;
                     status.textContent = 'Indexing codebase...';
                     status.className = 'index-status indexing';
 
+                    console.log('🔍 DEBUG: Sending indexCodebase message');
                     vscode.postMessage({ command: 'indexCodebase' });
+                });
+
+                // Glossary management event listeners
+                document.getElementById('glossaryButton').addEventListener('click', function() {
+                    vscode.postMessage({ command: 'toggleGlossary' });
+                });
+
+                document.getElementById('addTermButton').addEventListener('click', function() {
+                    const termInput = document.getElementById('termInput');
+                    const definitionInput = document.getElementById('definitionInput');
+
+                    const term = termInput.value.trim();
+                    const definition = definitionInput.value.trim();
+
+                    if (term && definition) {
+                        vscode.postMessage({
+                            command: 'addGlossaryTerm',
+                            term: term,
+                            definition: definition
+                        });
+                        termInput.value = '';
+                        definitionInput.value = '';
+                    }
+                });
+
+                document.getElementById('closeGlossaryButton').addEventListener('click', function() {
+                    document.getElementById('glossaryPanel').style.display = 'none';
+                });
+
+                document.getElementById('importGlossaryButton').addEventListener('click', function() {
+                    vscode.postMessage({ command: 'importGlossary' });
+                });
+
+                document.getElementById('exportGlossaryButton').addEventListener('click', function() {
+                    vscode.postMessage({ command: 'exportGlossary' });
                 });
 
                 function sendMessage() {
@@ -914,6 +1333,10 @@ console.log(greet("Developer"));`;
                         updateIndexDisplay(message.isCodebaseIndexed);
                     } else if (message.command === 'updateIndexStatus') {
                         updateIndexDisplay(message.isIndexed, message.fileCount);
+                    } else if (message.command === 'updateGlossaryStatus') {
+                        updateGlossaryDisplay(message.termCount, message.terms);
+                    } else if (message.command === 'toggleGlossaryPanel') {
+                        toggleGlossaryPanel();
                     }
                 });
 
@@ -960,6 +1383,44 @@ console.log(greet("Developer"));`;
                         status.textContent = 'Not indexed';
                         status.className = 'index-status';
                     }
+                }
+
+                function updateGlossaryDisplay(termCount, terms) {
+                    const status = document.getElementById('glossaryStatus');
+                    const glossaryList = document.getElementById('glossaryList');
+
+                    if (termCount > 0) {
+                        status.textContent = termCount + ' terms defined';
+                        status.className = 'glossary-status has-terms';
+
+                        // Update glossary list
+                        glossaryList.innerHTML = '';
+                        terms.forEach(term => {
+                            const termDiv = document.createElement('div');
+                            termDiv.className = 'glossary-item';
+                            termDiv.innerHTML = \`
+                                <div>
+                                    <span class="glossary-term">\${term.term}</span>
+                                    <span class="glossary-definition">\${term.definition}</span>
+                                </div>
+                                <button class="delete-term" onclick="removeTerm('\${term.term}')">✖️</button>
+                            \`;
+                            glossaryList.appendChild(termDiv);
+                        });
+                    } else {
+                        status.textContent = 'No terms defined';
+                        status.className = 'glossary-status';
+                        glossaryList.innerHTML = '';
+                    }
+                }
+
+                function toggleGlossaryPanel() {
+                    const panel = document.getElementById('glossaryPanel');
+                    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+                }
+
+                function removeTerm(term) {
+                    vscode.postMessage({ command: 'removeGlossaryTerm', term: term });
                 }
             </script>
         </body>
@@ -2355,4 +2816,468 @@ function formatMRAnalysis(analysis: any, mrUrl: string): string {
     return report;
 }
 
-export function deactivate() {}
+/**
+ * PERSISTENT CODEBASE INDEX SYSTEM
+ * Save and restore codebase indexing across VSCode sessions
+ */
+
+/**
+ * Save codebase index to VSCode workspace storage
+ */
+async function saveCodebaseIndex(context: vscode.ExtensionContext): Promise<void> {
+    try {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            return;
+        }
+
+        const indexData = {
+            timestamp: codebaseIndexTimestamp,
+            workspacePath: workspaceFolder.uri.fsPath,
+            isIndexed: isCodebaseIndexed,
+            files: Array.from(codebaseIndex.entries()).map(([path, data]) => ({
+                path,
+                content: data.content.slice(0, 10000), // Limit content size for storage
+                size: data.size,
+                lastModified: data.lastModified,
+                symbols: data.symbols,
+                imports: data.imports,
+                exports: data.exports
+            })),
+            projectStructure: {
+                files: projectStructure?.files || [],
+                symbolCount: projectStructure?.symbols?.size || 0,
+                dependencyCount: projectStructure?.dependencies?.size || 0
+            }
+        };
+
+        await context.workspaceState.update('codebaseIndex', indexData);
+        console.log('💾 Codebase index saved to workspace storage');
+
+    } catch (error) {
+        console.error('Failed to save codebase index:', error);
+    }
+}
+
+/**
+ * Load codebase index from VSCode workspace storage
+ */
+async function loadCodebaseIndex(context: vscode.ExtensionContext): Promise<boolean> {
+    try {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            return false;
+        }
+
+        const indexData = context.workspaceState.get('codebaseIndex') as any;
+        if (!indexData) {
+            console.log('📂 No saved codebase index found');
+            return false;
+        }
+
+        // Check if the workspace path matches (in case user moved the project)
+        if (indexData.workspacePath !== workspaceFolder.uri.fsPath) {
+            console.log('📂 Workspace path changed, clearing old index');
+            await context.workspaceState.update('codebaseIndex', undefined);
+            return false;
+        }
+
+        // Check if index is too old (older than 24 hours)
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        if (Date.now() - indexData.timestamp > maxAge) {
+            console.log('📂 Codebase index is stale, will re-index');
+            return false;
+        }
+
+        // Restore the codebase index
+        codebaseIndex.clear();
+        for (const fileData of indexData.files) {
+            codebaseIndex.set(fileData.path, {
+                path: fileData.path,
+                content: fileData.content,
+                size: fileData.size,
+                lastModified: fileData.lastModified,
+                symbols: fileData.symbols || [],
+                imports: fileData.imports || [],
+                exports: fileData.exports || []
+            });
+        }
+
+        // Restore project structure
+        projectStructure = {
+            files: indexData.projectStructure?.files || [],
+            symbols: new Map(), // Will be rebuilt if needed
+            dependencies: new Map() // Will be rebuilt if needed
+        };
+
+        isCodebaseIndexed = indexData.isIndexed;
+        codebaseIndexTimestamp = indexData.timestamp;
+
+        console.log(`💾 Loaded codebase index: ${codebaseIndex.size} files from ${new Date(codebaseIndexTimestamp).toLocaleString()}`);
+        return true;
+
+    } catch (error) {
+        console.error('Failed to load codebase index:', error);
+        return false;
+    }
+}
+
+/**
+ * Check if codebase needs re-indexing based on file changes
+ */
+async function checkCodebaseChanges(): Promise<boolean> {
+    try {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            return false;
+        }
+
+        // Find all relevant files
+        const files = await vscode.workspace.findFiles(
+            '**/*.{ts,js,tsx,jsx,py,java,cs,cpp,h,md,json}',
+            '**/node_modules/**'
+        );
+
+        // Check if file count changed significantly
+        const currentFileCount = files.length;
+        const indexedFileCount = codebaseIndex.size;
+
+        if (Math.abs(currentFileCount - indexedFileCount) > 5) {
+            console.log(`📂 File count changed significantly: ${indexedFileCount} -> ${currentFileCount}`);
+            return true;
+        }
+
+        // Check if any indexed files have been modified
+        let changedFiles = 0;
+        for (const file of files.slice(0, 50)) { // Check first 50 files for performance
+            const indexedFile = codebaseIndex.get(file.fsPath);
+            if (indexedFile) {
+                try {
+                    const stat = await vscode.workspace.fs.stat(file);
+                    if (stat.mtime > indexedFile.lastModified) {
+                        changedFiles++;
+                        if (changedFiles > 3) { // If more than 3 files changed, re-index
+                            console.log(`📂 Multiple files changed, re-indexing recommended`);
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    // File might have been deleted
+                    changedFiles++;
+                }
+            }
+        }
+
+        return false;
+
+    } catch (error) {
+        console.error('Failed to check codebase changes:', error);
+        return true; // Re-index on error to be safe
+    }
+}
+
+/**
+ * SMART MANIFESTO GENERATION SYSTEM
+ * Analyze codebase and suggest manifesto improvements
+ */
+
+/**
+ * Analyze manifesto opportunities based on codebase
+ */
+async function analyzeManifestoOpportunities(): Promise<any> {
+    const suggestions: string[] = [];
+
+    if (!isCodebaseIndexed || codebaseIndex.size === 0) {
+        return { suggestions: [] };
+    }
+
+    // Check for existing manifestos
+    const existingManifestos = await findExistingManifestos();
+
+    // Analyze codebase patterns
+    const codebaseAnalysis = analyzeCodebasePatterns();
+
+    // Generate suggestions based on findings
+    if (existingManifestos.length === 0) {
+        suggestions.push('💡 **No manifesto found** - Generate project-specific manifesto based on your codebase patterns');
+    } else {
+        suggestions.push(`📋 **Found ${existingManifestos.length} manifesto(s)** - ${existingManifestos.map(m => m.type).join(', ')}`);
+    }
+
+    // Suggest specific manifesto types based on codebase
+    if (codebaseAnalysis.hasTests) {
+        suggestions.push('🧪 **QA Manifesto** - Generate testing standards based on your existing test patterns');
+    }
+
+    if (codebaseAnalysis.hasSecurityPatterns) {
+        suggestions.push('🔒 **Security Manifesto** - Create security guidelines based on auth/validation patterns found');
+    }
+
+    if (codebaseAnalysis.hasAPIEndpoints) {
+        suggestions.push('🌐 **API Manifesto** - Generate API standards based on your endpoint patterns');
+    }
+
+    if (codebaseAnalysis.hasReactComponents) {
+        suggestions.push('⚛️ **Frontend Manifesto** - Create React/UI component standards');
+    }
+
+    return { suggestions, analysis: codebaseAnalysis, existingManifestos };
+}
+
+/**
+ * Find existing manifesto files in the workspace
+ */
+async function findExistingManifestos(): Promise<any[]> {
+    const manifestos: any[] = [];
+
+    try {
+        const manifestoFiles = await vscode.workspace.findFiles(
+            '**/*{manifesto,standards,guidelines,rules}*.{md,txt}',
+            '**/node_modules/**'
+        );
+
+        for (const file of manifestoFiles) {
+            const content = await vscode.workspace.fs.readFile(file);
+            const text = Buffer.from(content).toString('utf8');
+
+            // Determine manifesto type based on filename and content
+            const filename = file.fsPath.toLowerCase();
+            let type = 'general';
+
+            if (filename.includes('qa') || filename.includes('test')) type = 'qa';
+            else if (filename.includes('security') || filename.includes('sec')) type = 'security';
+            else if (filename.includes('api') || filename.includes('backend')) type = 'api';
+            else if (filename.includes('frontend') || filename.includes('ui')) type = 'frontend';
+            else if (filename.includes('dev')) type = 'development';
+
+            manifestos.push({
+                path: file.fsPath,
+                type: type,
+                size: text.length,
+                hasRules: text.includes('must') || text.includes('should') || text.includes('required')
+            });
+        }
+    } catch (error) {
+        console.warn('Failed to find existing manifestos:', error);
+    }
+
+    return manifestos;
+}
+
+/**
+ * Analyze codebase patterns to suggest manifesto types
+ */
+function analyzeCodebasePatterns(): any {
+    const analysis = {
+        hasTests: false,
+        hasSecurityPatterns: false,
+        hasAPIEndpoints: false,
+        hasReactComponents: false,
+        hasDatabaseCode: false,
+        languages: new Set<string>(),
+        frameworks: new Set<string>()
+    };
+
+    for (const [filePath, fileData] of codebaseIndex) {
+        const content = fileData.content.toLowerCase();
+        const filename = filePath.toLowerCase();
+
+        // Detect languages
+        if (filename.endsWith('.ts') || filename.endsWith('.tsx')) analysis.languages.add('TypeScript');
+        if (filename.endsWith('.js') || filename.endsWith('.jsx')) analysis.languages.add('JavaScript');
+        if (filename.endsWith('.py')) analysis.languages.add('Python');
+        if (filename.endsWith('.java')) analysis.languages.add('Java');
+        if (filename.endsWith('.cs')) analysis.languages.add('C#');
+
+        // Detect test files
+        if (filename.includes('test') || filename.includes('spec') ||
+            content.includes('describe(') || content.includes('it(') || content.includes('test(')) {
+            analysis.hasTests = true;
+        }
+
+        // Detect security patterns
+        if (content.includes('auth') || content.includes('login') || content.includes('password') ||
+            content.includes('validate') || content.includes('sanitize') || content.includes('jwt')) {
+            analysis.hasSecurityPatterns = true;
+        }
+
+        // Detect API endpoints
+        if (content.includes('app.get') || content.includes('app.post') || content.includes('@route') ||
+            content.includes('express') || content.includes('fastapi') || content.includes('controller')) {
+            analysis.hasAPIEndpoints = true;
+        }
+
+        // Detect React components
+        if (content.includes('react') || content.includes('jsx') || content.includes('usestate') ||
+            filename.includes('component') || content.includes('props')) {
+            analysis.hasReactComponents = true;
+            analysis.frameworks.add('React');
+        }
+
+        // Detect database code
+        if (content.includes('database') || content.includes('sql') || content.includes('query') ||
+            content.includes('mongoose') || content.includes('sequelize')) {
+            analysis.hasDatabaseCode = true;
+        }
+    }
+
+    return analysis;
+}
+
+/**
+ * GLOSSARY STORAGE SYSTEM
+ * Save and restore glossary terms across VSCode sessions
+ */
+
+/**
+ * Save glossary to VSCode workspace storage
+ */
+async function saveGlossaryToStorage(context: vscode.ExtensionContext): Promise<void> {
+    try {
+        const glossaryData = {
+            timestamp: Date.now(),
+            terms: Array.from(projectGlossary.entries()).map(([key, value]) => ({
+                key,
+                term: value.term,
+                definition: value.definition,
+                dateAdded: value.dateAdded,
+                usage: value.usage
+            }))
+        };
+
+        await context.workspaceState.update('projectGlossary', glossaryData);
+        console.log('💾 Glossary saved to workspace storage');
+
+    } catch (error) {
+        console.error('Failed to save glossary:', error);
+    }
+}
+
+/**
+ * Load glossary from VSCode workspace storage
+ */
+async function loadGlossaryFromStorage(context: vscode.ExtensionContext): Promise<boolean> {
+    try {
+        const glossaryData = context.workspaceState.get('projectGlossary') as any;
+        if (!glossaryData || !glossaryData.terms) {
+            console.log('📖 No saved glossary found');
+            return false;
+        }
+
+        // Restore the glossary
+        projectGlossary.clear();
+        for (const termData of glossaryData.terms) {
+            projectGlossary.set(termData.key, {
+                term: termData.term,
+                definition: termData.definition,
+                dateAdded: termData.dateAdded || Date.now(),
+                usage: termData.usage || 0
+            });
+        }
+
+        isGlossaryIndexed = projectGlossary.size > 0;
+        console.log(`💾 Loaded glossary: ${projectGlossary.size} terms from ${new Date(glossaryData.timestamp).toLocaleString()}`);
+        return true;
+
+    } catch (error) {
+        console.error('Failed to load glossary:', error);
+        return false;
+    }
+}
+
+/**
+ * Enhance AI response with glossary context
+ */
+function enhanceResponseWithGlossary(response: string): string {
+    if (projectGlossary.size === 0) {
+        return response;
+    }
+
+    let enhancedResponse = response;
+    const foundTerms: string[] = [];
+
+    // Find terms mentioned in the response
+    for (const [key, termData] of projectGlossary) {
+        const regex = new RegExp(`\\b${termData.term}\\b`, 'gi');
+        if (regex.test(response)) {
+            foundTerms.push(`**${termData.term}**: ${termData.definition}`);
+
+            // Update usage count
+            termData.usage++;
+        }
+    }
+
+    // Add glossary context if terms were found
+    if (foundTerms.length > 0) {
+        enhancedResponse += `\n\n📖 **Glossary Context:**\n${foundTerms.join('\n')}`;
+    }
+
+    return enhancedResponse;
+}
+
+/**
+ * File change detection for auto re-indexing
+ */
+let fileWatcher: vscode.FileSystemWatcher | undefined;
+
+/**
+ * Setup file change detection
+ */
+function setupFileChangeDetection(): void {
+    // Dispose existing watcher
+    if (fileWatcher) {
+        fileWatcher.dispose();
+    }
+
+    // Create new watcher for relevant files
+    fileWatcher = vscode.workspace.createFileSystemWatcher(
+        '**/*.{ts,js,tsx,jsx,py,java,cs,cpp,h,md,json}',
+        false, // ignoreCreateEvents
+        false, // ignoreChangeEvents
+        false  // ignoreDeleteEvents
+    );
+
+    let changeTimeout: NodeJS.Timeout | undefined;
+
+    const handleFileChange = () => {
+        // Debounce file changes to avoid excessive re-indexing
+        if (changeTimeout) {
+            clearTimeout(changeTimeout);
+        }
+
+        changeTimeout = setTimeout(async () => {
+            if (isCodebaseIndexed) {
+                console.log('📂 Files changed, checking if re-indexing is needed...');
+                const needsReindex = await checkCodebaseChanges();
+
+                if (needsReindex) {
+                    console.log('📂 Significant changes detected, suggesting re-index');
+                    // Could trigger automatic re-indexing or show notification
+                    vscode.window.showInformationMessage(
+                        'Codebase changes detected. Re-index for updated intelligence?',
+                        'Re-index Now',
+                        'Later'
+                    ).then(selection => {
+                        if (selection === 'Re-index Now') {
+                            // Trigger re-indexing
+                            vscode.commands.executeCommand('manifestoEnforcer.indexCodebase');
+                        }
+                    });
+                }
+            }
+        }, 2000); // Wait 2 seconds after last change
+    };
+
+    fileWatcher.onDidCreate(handleFileChange);
+    fileWatcher.onDidChange(handleFileChange);
+    fileWatcher.onDidDelete(handleFileChange);
+
+    console.log('👁️ File change detection enabled');
+}
+
+export function deactivate() {
+    // Clean up file watcher
+    if (fileWatcher) {
+        fileWatcher.dispose();
+    }
+}
