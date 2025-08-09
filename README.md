@@ -1,17 +1,17 @@
-# 🐷 Piggie - Enterprise AI Development Assistant
+# 🛡️ Manifesto Enforcer - Enterprise AI Development Assistant
 
-**Bring Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, and manifesto-compliant development.**
+**VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, and manifesto-compliant development.**
 
 [![Version](https://img.shields.io/badge/version-0.0.5--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
-## 🎯 Why Piggie?
+## 🎯 Why Manifesto Enforcer?
 
-Piggie solves the **enterprise AI adoption challenge** by providing Auggie-level coding intelligence through existing approved AI services like Amazon Q, while enforcing company coding standards automatically.
+The Manifesto Enforcer extension solves the **enterprise AI adoption challenge** by providing Auggie-level coding intelligence through existing approved AI services like Amazon Q, while enforcing company coding standards automatically. **Piggie** is the AI agent that powers this intelligence within the extension.
 
 ### **Perfect for Enterprise Because:**
-- ✅ **Built in-house** - Easier approval than external tools
+- ✅ **Open source** - Full transparency, can be customized for internal use
 - ✅ **Uses existing AI** - Works with Amazon Q, GitHub Copilot, etc.
 - ✅ **Token optimized** - Efficient for enterprise AI limits
 - ✅ **Security focused** - Input validation, XSS prevention built-in
@@ -65,6 +65,7 @@ Piggie solves the **enterprise AI adoption challenge** by providing Auggie-level
 2. **Install** via VSCode: `code --install-extension manifesto-enforcer-0.0.5-alpha.vsix`
 3. **Configure** your company's manifesto.md
 4. **Index** your codebase for full intelligence
+5. **Customize** for your organization's specific needs
 
 ### **For Individual Developers:**
 1. **Clone** this repository
@@ -80,12 +81,12 @@ Piggie solves the **enterprise AI adoption challenge** by providing Auggie-level
 code --install-extension manifesto-enforcer-0.0.5-alpha.vsix
 
 # Open VSCode and look for the shield icon in the activity bar
-# Click "💬 Chat with Piggie" to start
+# Click "💬 Chat with Piggie" to start chatting with the AI agent
 ```
 
 ### **2. Index Your Codebase**
 ```
-1. Click "📚 Index Codebase" in Piggie's chat
+1. Click "📚 Index Codebase" in Piggie's chat window
 2. Wait for indexing to complete
 3. See "Indexed X files" status
 ```
@@ -132,7 +133,7 @@ Create `manifesto.md` in your project root:
 ```
 
 ### **Amazon Q Optimization**
-When using Amazon Q, Piggie automatically:
+When using Amazon Q, the Manifesto Enforcer extension automatically:
 - **Compresses context** to fit token limits
 - **Prioritizes relevant files** based on your request
 - **Sends compact manifesto rules** instead of full text
@@ -289,4 +290,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with ❤️ for enterprise development teams who want Auggie-level intelligence in their approved AI environments.**
+**Open source tool built with ❤️ for enterprise development teams who want Auggie-level intelligence in their approved AI environments.**
