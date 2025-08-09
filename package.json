@@ -1,0 +1,220 @@
+{
+  "name": "manifesto-enforcer",
+  "displayName": "Manifesto Enforcer",
+  "description": "Helps enforce a development manifesto by augmenting AI prompts.",
+  "version": "0.4.0",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "manifesto.refactorWithToggle",
+        "title": "Manifesto: Refactor Selection"
+      },
+      {
+        "command": "manifesto.toggleStrictMode",
+        "title": "Manifesto: Toggle Strict Mode"
+      },
+      {
+        "command": "manifesto.setManifestoPath",
+        "title": "Manifesto: Set Project Manifesto File"
+      },
+      {
+        "command": "manifesto.openPanel",
+        "title": "Open Manifesto Panel",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "manifesto.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "manifesto.createManifesto",
+        "title": "Create New Manifesto",
+        "icon": "$(add)"
+      },
+      {
+        "command": "manifesto.createFromTemplate",
+        "title": "Create from Template",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "manifesto.sendToAugment",
+        "title": "Send to Augment Code",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "manifesto.quickRefactor",
+        "title": "Quick Refactor (Vibe Mode)",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "manifesto.strictRefactor",
+        "title": "Strict Refactor (Manifesto Mode)",
+        "icon": "$(law)"
+      },
+      {
+        "command": "manifesto.vibeChat",
+        "title": "Start Vibe Chat",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "manifesto.manifestoChat",
+        "title": "Start Manifesto Chat",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "manifesto.sendManifestoToChat",
+        "title": "Send Manifesto to Chat",
+        "icon": "$(book)"
+      },
+      {
+        "command": "manifesto.complianceCheck",
+        "title": "Run Compliance Check",
+        "icon": "$(search)"
+      },
+      {
+        "command": "manifesto.vibeChat",
+        "title": "Start Vibe Chat",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "manifesto.manifestoChat",
+        "title": "Start Manifesto Chat",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "manifesto.sendManifestoToChat",
+        "title": "Send Manifesto to Chat",
+        "icon": "$(book)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "manifesto-container",
+          "title": "Manifesto Enforcer",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "views": {
+      "manifesto-container": [
+        {
+          "id": "manifestoPanel",
+          "name": "Project Manifesto",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "manifestoActions",
+          "name": "Quick Actions",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "manifestoPanel",
+        "contents": "No manifesto file configured for this project.\n\n[$(file-code) Create from Template](command:manifesto.createFromTemplate)\n[$(add) Create Blank Manifesto](command:manifesto.createManifesto)\n[$(folder-opened) Set Existing Manifesto](command:manifesto.setManifestoPath)"
+      },
+      {
+        "view": "manifestoActions",
+        "contents": "Ready for some vibe coding?\n\n[$(comment) Start Vibe Chat](command:manifesto.vibeChat)\n[$(shield) Start Manifesto Chat](command:manifesto.manifestoChat)\n[$(book) Send Manifesto to Chat](command:manifesto.sendManifestoToChat)\n\n---\n\n[$(search) Run Compliance Check](command:manifesto.complianceCheck)\n\n---\n\nOr select code for refactoring options."
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorHasSelection",
+          "command": "manifesto.refactorWithToggle",
+          "group": "1_modification@1"
+        },
+        {
+          "when": "editorHasSelection",
+          "command": "manifesto.quickRefactor",
+          "group": "1_modification@2"
+        },
+        {
+          "when": "editorHasSelection",
+          "command": "manifesto.strictRefactor",
+          "group": "1_modification@3"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "manifesto.refresh",
+          "when": "view == manifestoPanel",
+          "group": "navigation"
+        },
+        {
+          "command": "manifesto.setManifestoPath",
+          "when": "view == manifestoPanel",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "manifesto.toggleStrictMode",
+          "when": "view == manifestoPanel && viewItem == modeToggle"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Manifesto",
+      "properties": {
+        "manifesto.filePath": {
+          "type": "string",
+          "default": "manifesto.md",
+          "description": "Path to the development manifesto .md file. Can be absolute, but a path relative to the workspace root is recommended.",
+          "scope": "resource"
+        },
+        "manifesto.aiProvider": {
+          "type": "string",
+          "scope": "resource",
+          "default": "None (Manual Paste)",
+          "description": "Select the AI chat provider to automatically open after copying the prompt.",
+          "enum": [
+            "None (Manual Paste)",
+            "Augment Code",
+            "Amazon Q",
+            "Claude",
+            "GitHub Copilot Chat"
+          ],
+          "enumDescriptions": [
+            "Only copies the prompt to the clipboard. You open the chat manually.",
+            "For use with the Augment Code extension.",
+            "For use with the Amazon Q extension.",
+            "For use with the official Anthropic Claude extension.",
+            "For use with the GitHub Copilot Chat extension."
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.84.0",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2"
+  }
+}
