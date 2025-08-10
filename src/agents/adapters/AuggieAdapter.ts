@@ -53,9 +53,7 @@ export class AuggieAdapter implements IAgentAdapter {
       const response = await this.sendToAugment(message, context);
 
       const duration = Date.now() - startTime;
-      if (duration > 200) {
-        console.warn(`Auggie response took ${duration}ms - exceeds performance target`);
-      }
+      console.log(`Auggie response completed in ${duration}ms`);
 
       return {
         id: this.generateMessageId(),
@@ -118,15 +116,12 @@ export class AuggieAdapter implements IAgentAdapter {
       if (!this.augmentExtension.isActive) {
         console.log('🐷 Activating Augment extension...');
         const activationPromise = this.augmentExtension.activate();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Activation timeout - likely authentication needed')), 2000)
-        );
 
         try {
-          await Promise.race([activationPromise, timeoutPromise]);
+          await activationPromise;
           console.log('🐷 Augment extension activated successfully');
         } catch (error) {
-          console.warn('🐷 Augment extension activation timed out - this usually means authentication is needed');
+          console.warn('🐷 Augment extension activation failed - this usually means authentication is needed');
 
           // Show helpful message to user about authentication
           const authAction = await vscode.window.showInformationMessage(

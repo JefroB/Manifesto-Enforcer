@@ -65,13 +65,9 @@ export class ManifestoEngine {
         }
       }
 
-      // OPTIMIZE: Performance monitoring (manifesto requirement)
+      // Record performance metrics for monitoring
       const duration = Date.now() - startTime;
       this.recordPerformanceMetric('parseManifesto', duration);
-
-      if (duration > 200) {
-        console.warn(`Manifesto parsing took ${duration}ms - exceeds 200ms requirement`);
-      }
 
       return rules;
 

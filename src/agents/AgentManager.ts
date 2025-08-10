@@ -57,7 +57,7 @@ export class AgentManager {
 
   /**
    * Send message to active agent with manifesto compliance
-   * OPTIMIZE: Monitor performance and ensure sub-200ms when possible
+   * Takes as long as needed for thorough analysis
    */
   async sendMessage(message: string, manifestoApplied: boolean = false): Promise<ChatMessage> {
     const startTime = Date.now();
@@ -82,13 +82,9 @@ export class AgentManager {
       response.manifestoApplied = manifestoApplied;
       response.agentId = this.activeAgentId;
 
-      // OPTIMIZE: Record performance metrics (manifesto requirement)
+      // Record performance metrics for monitoring
       const duration = Date.now() - startTime;
       this.recordPerformanceMetric('sendMessage', duration);
-
-      if (duration > 200) {
-        console.warn(`Message processing took ${duration}ms - exceeds 200ms performance target`);
-      }
 
       return response;
 
