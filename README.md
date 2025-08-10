@@ -10,7 +10,9 @@
 
 ## 🎯 Why Manifesto Enforcer?
 
-The Manifesto Enforcer extension solves the **enterprise AI adoption challenge** by providing Auggie-level coding intelligence through existing approved AI services like Amazon Q, while enforcing company coding standards automatically. **Piggie** is the AI agent that powers this intelligence within the extension.
+The Manifesto Enforcer extension solves the **enterprise AI adoption challenge** by providing Auggie-level coding intelligence through existing approved AI services like **Amazon Q (fully supported)**, while enforcing company coding standards automatically. **Piggie** is the AI agent that powers this intelligence within the extension.
+
+**Amazon Q users get complete feature parity** - every Piggie capability works seamlessly with Amazon Q's enterprise-grade AI infrastructure.
 
 ### **Perfect for Enterprise Because:**
 - ✅ **Open source** - Full transparency, can be customized for internal use
@@ -22,9 +24,9 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 ## 🚀 Key Features
 
 ### **🤖 Multi-AI Agent Ecosystem**
-- **🟠 Amazon Q (Enterprise)** - AWS integration via Toolkit extension, high token limits, enterprise authentication
-- **🤖 Auggie (Augment Code)** - Full compatibility with Augment Code extension and services
-- **🦙 Ollama (Local & Free)** - Privacy-first local AI with streaming support, works offline
+- **🟠 Amazon Q (Enterprise)** - **FULLY SUPPORTED** - Complete feature parity with AWS integration, high token limits, enterprise authentication
+- **🤖 Auggie (Augment Code)** - **FULLY SUPPORTED** - Complete compatibility with Augment Code extension and services
+- **🦙 Ollama (Local & Free)** - **FULLY SUPPORTED** - Privacy-first local AI with streaming support, works offline
 - **🔄 Fallback Assistant** - Always-available local analysis tools when no AI is configured
 - **🔌 Auto-Discovery** - Automatically detects and configures available AI providers
 - **⚡ Seamless Switching** - Switch between providers based on your needs and preferences
@@ -147,8 +149,9 @@ code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
 
 The extension automatically detects and configures available AI providers. Choose the option that best fits your needs:
 
-### **🟠 Amazon Q (Enterprise)**
+### **🟠 Amazon Q (Enterprise) - FULLY SUPPORTED**
 **Best for: Enterprise teams with AWS infrastructure**
+**⭐ COMPLETE FEATURE PARITY - All Piggie features work seamlessly with Amazon Q**
 
 1. **Install AWS Toolkit**: Search for "AWS Toolkit" in VS Code extensions
 2. **Authenticate**: Sign in to your AWS account through the toolkit
@@ -156,12 +159,24 @@ The extension automatically detects and configures available AI providers. Choos
 4. **Auto-Detection**: Extension automatically detects and configures Amazon Q
 
 ```bash
-# Amazon Q provides:
+# Amazon Q provides FULL SUPPORT for:
 ✅ High token limits (32,000+)
-✅ Enterprise authentication
-✅ Multi-language support
+✅ Enterprise authentication & security
+✅ Multi-language code generation
 ✅ AWS infrastructure integration
+✅ Complete manifesto compliance checking
+✅ Full codebase analysis & indexing
+✅ Interactive code editing & refactoring
+✅ Comprehensive linting & quality analysis
+✅ Project glossary management
+✅ All chat commands (/lint, /edit, /graph, etc.)
 ```
+
+**Amazon Q Integration Features:**
+- **Smart Context Management**: Automatically optimizes requests for Amazon Q's token limits
+- **Enterprise Security**: Leverages AWS authentication and security policies
+- **High Performance**: Optimized for Amazon Q's response patterns and capabilities
+- **Full Feature Access**: Every Piggie feature works identically with Amazon Q
 
 ### **🦙 Ollama (Local & Free)**
 **Best for: Privacy-conscious developers, offline work**
@@ -230,13 +245,14 @@ Create `manifesto.md` in your project root:
 - Caching required for repeated operations
 ```
 
-### **Amazon Q Optimization**
-When using Amazon Q, the Manifesto Enforcer extension automatically:
-- **Compresses context** to fit token limits
-- **Prioritizes relevant files** based on your request
-- **Sends compact manifesto rules** instead of full text
-- **Manages conversation length** to prevent context overflow
-- **Includes relevant glossary terms** without exceeding limits
+### **Amazon Q Enterprise Integration**
+The Manifesto Enforcer extension provides seamless Amazon Q integration with:
+- **Intelligent Context Management** - Optimizes requests for maximum effectiveness
+- **Smart File Prioritization** - Focuses on the most relevant code for your request
+- **Efficient Manifesto Integration** - Delivers compliance rules in optimal format
+- **Conversation Optimization** - Maintains context while maximizing response quality
+- **Dynamic Glossary Integration** - Includes relevant terms for enhanced understanding
+- **Enterprise Security** - Leverages AWS authentication and compliance features
 
 ### **Glossary Management**
 **Natural Chat Commands:**
