@@ -1,8 +1,10 @@
 # 🛡️ Manifesto Enforcer - AI Development Assistant
 
+*The man saying that something cannot be done, should not interrupt the man doing it.*
+
 **VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
-[![Version](https://img.shields.io/badge/version-0.0.5--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
+[![Version](https://img.shields.io/badge/version-0.0.6--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
@@ -76,7 +78,7 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 
 ### **For Enterprise Teams:**
 1. **Download** the latest `.vsix` from releases
-2. **Install** via VSCode: `code --install-extension manifesto-enforcer-0.0.5-alpha.vsix`
+2. **Install** via VSCode: `code --install-extension manifesto-enforcer-0.0.6-alpha.vsix`
 3. **Configure** your company's manifesto.md
 4. **Index** your codebase for full intelligence
 5. **Customize** for your organization's specific needs
@@ -92,7 +94,7 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 ### **1. Basic Setup**
 ```bash
 # Install the extension
-code --install-extension manifesto-enforcer-0.0.5-alpha.vsix
+code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
 
 # Open VSCode and look for the shield icon in the activity bar
 # Click "💬 Chat with Piggie" to start chatting with the AI agent
@@ -361,7 +363,7 @@ npm run compile
 npx vsce package
 
 # Install locally
-code --install-extension manifesto-enforcer-0.0.5-alpha.vsix
+code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
 ```
 
 ### **Testing:**
@@ -393,7 +395,7 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 
 ## 📊 Roadmap
 
-### **v0.0.5-alpha - CURRENT ✅**
+### **v0.0.6-alpha - CURRENT ✅**
 - [x] **Multi-AI Support** (Auggie, Amazon Q, Cline, Local)
 - [x] **Persistent Codebase Indexing** with 24hr cache
 - [x] **Chat-Based Glossary System** with natural language commands
@@ -404,6 +406,7 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 - [x] **Token Optimization** for enterprise AI limits
 - [x] **Context-Aware Code Generation**
 - [x] **Glossary-Enhanced Responses** with automatic term definitions
+- [x] **Manifesto Architecture Refactoring** - Separated generic and project-specific manifestos
 
 ### **v0.1.0 - Enterprise Integration**
 - [ ] GitHub/GitLab API authentication for real MR analysis
