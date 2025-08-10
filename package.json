@@ -2,7 +2,7 @@
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
   "description": "🐷 [ALPHA v0.0.1] Meet Piggie! Your compliance-enforcing AI coding assistant. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.5-alpha",
+  "version": "0.0.6-alpha",
   "publisher": "manifesto-dev",
   "repository": {
     "type": "git",
@@ -101,6 +101,26 @@
         "command": "manifestoEnforcer.sendToAmazonQ",
         "title": "🐷 Send to Amazon Q (Manifesto Enhanced)",
         "icon": "$(cloud)"
+      },
+      {
+        "command": "manifestoEnforcer.refreshManifesto",
+        "title": "Refresh Manifesto",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "manifestoEnforcer.refreshGlossary",
+        "title": "Refresh Glossary",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "manifestoEnforcer.addGlossaryTermFromTree",
+        "title": "Add Term",
+        "icon": "$(add)"
+      },
+      {
+        "command": "manifestoEnforcer.removeGlossaryTerm",
+        "title": "Remove Term",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -115,8 +135,13 @@
     "views": {
       "manifesto-enforcer": [
         {
-          "id": "piggieActions",
-          "name": "🐷 Piggie Actions",
+          "id": "manifestoView",
+          "name": "📋 Manifesto",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "glossaryView",
+          "name": "📖 Glossary",
           "when": "workspaceFolderCount > 0"
         },
         {
@@ -126,18 +151,47 @@
           "when": "workspaceFolderCount > 0"
         },
         {
-          "id": "piggieSecurityReview",
-          "name": "🔒 Security Review",
+          "id": "piggieActions",
+          "name": "🐷 Piggie Actions",
           "when": "workspaceFolderCount > 0"
         },
         {
           "id": "manifestoRules",
           "name": "🛡️ Manifesto Rules",
           "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "piggieSecurityReview",
+          "name": "🔒 Security Review",
+          "when": "workspaceFolderCount > 0"
         }
       ]
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "manifestoEnforcer.refreshManifesto",
+          "when": "view == manifestoView",
+          "group": "navigation"
+        },
+        {
+          "command": "manifestoEnforcer.refreshGlossary",
+          "when": "view == glossaryView",
+          "group": "navigation"
+        },
+        {
+          "command": "manifestoEnforcer.addGlossaryTermFromTree",
+          "when": "view == glossaryView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "manifestoEnforcer.removeGlossaryTerm",
+          "when": "view == glossaryView && viewItem == term",
+          "group": "inline"
+        }
+      ],
       "editor/context": [
         {
           "command": "manifestoEnforcer.reviewSelectedCode",
@@ -258,10 +312,10 @@
     "@typescript-eslint/parser": "^6.13.1",
     "eslint": "^8.54.0",
     "jest": "^29.5.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.3.2"
+    "ts-jest": "^29.1.0"
   },
   "dependencies": {
-    "crypto": "^1.0.1"
+    "crypto": "^1.0.1",
+    "typescript": "^5.3.2"
   }
 }
