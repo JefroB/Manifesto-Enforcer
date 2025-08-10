@@ -1,6 +1,6 @@
 # 🛡️ Manifesto Enforcer - AI Development Assistant
 
-*The man saying that something cannot be done, should not interrupt the man doing it.*
+*The man saying that something cannot be done, should not interrupt the man doing it.* - Chinese Proverb
 
 **VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
@@ -442,3 +442,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Open source tool built with ❤️ for enterprise development teams who want Auggie-level intelligence in their approved AI environments.**
+
+*Ready to enforce your manifesto and boost your development workflow!* 🚀
