@@ -1,14 +1,30 @@
 {
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
-  "description": "Helps enforce a development manifesto by augmenting AI prompts.",
-  "version": "0.4.0",
-  "publisher": "your-publisher-name",
+  "description": "🐷 [ALPHA v0.0.1] Meet Piggie! Your compliance-enforcing AI coding assistant. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
+  "version": "0.0.5-alpha",
+  "publisher": "manifesto-dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manifesto-dev/manifesto-code-assistant-pro.git"
+  },
   "engines": {
     "vscode": "^1.84.0"
   },
   "categories": [
-    "Other"
+    "AI",
+    "Other",
+    "Testing"
+  ],
+  "keywords": [
+    "ai",
+    "manifesto",
+    "coding-assistant",
+    "multi-agent",
+    "tdd",
+    "claude",
+    "augment",
+    "amazon-q"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -17,186 +33,209 @@
   "contributes": {
     "commands": [
       {
-        "command": "manifesto.refactorWithToggle",
-        "title": "Manifesto: Refactor Selection"
-      },
-      {
-        "command": "manifesto.toggleStrictMode",
-        "title": "Manifesto: Toggle Strict Mode"
-      },
-      {
-        "command": "manifesto.setManifestoPath",
-        "title": "Manifesto: Set Project Manifesto File"
-      },
-      {
-        "command": "manifesto.openPanel",
-        "title": "Open Manifesto Panel",
+        "command": "manifestoEnforcer.toggleManifestoMode",
+        "title": "🛡️ Toggle Manifesto Mode",
         "icon": "$(shield)"
       },
       {
-        "command": "manifesto.refresh",
-        "title": "Refresh",
-        "icon": "$(refresh)"
+        "command": "manifestoEnforcer.switchAgent",
+        "title": "🐷 Switch Piggie's Brain (AI Agent)",
+        "icon": "$(shield)"
       },
       {
-        "command": "manifesto.createManifesto",
-        "title": "Create New Manifesto",
-        "icon": "$(add)"
+        "command": "manifestoEnforcer.quickChat",
+        "title": "⚡ Quick Chat with Piggie",
+        "icon": "$(comment)"
       },
       {
-        "command": "manifesto.createFromTemplate",
-        "title": "Create from Template",
-        "icon": "$(file-code)"
+        "command": "manifestoEnforcer.writeCode",
+        "title": "📝 Piggie: Write Code",
+        "icon": "$(edit)"
       },
       {
-        "command": "manifesto.sendToAugment",
-        "title": "Send to Augment Code",
+        "command": "manifestoEnforcer.openChat",
+        "title": "💬 Chat with Piggie",
         "icon": "$(comment-discussion)"
       },
       {
-        "command": "manifesto.quickRefactor",
-        "title": "Quick Refactor (Vibe Mode)",
-        "icon": "$(zap)"
+        "command": "manifestoEnforcer.validateCompliance",
+        "title": "✅ Piggie: Validate Manifesto Compliance",
+        "icon": "$(check)"
       },
       {
-        "command": "manifesto.strictRefactor",
-        "title": "Strict Refactor (Manifesto Mode)",
-        "icon": "$(law)"
+        "command": "manifestoEnforcer.createManifesto",
+        "title": "📝 Create New Manifesto",
+        "icon": "$(new-file)"
       },
       {
-        "command": "manifesto.vibeChat",
-        "title": "Start Vibe Chat",
-        "icon": "$(comment)"
+        "command": "manifestoEnforcer.openSettings",
+        "title": "⚙️ Piggie Settings",
+        "icon": "$(settings-gear)"
       },
       {
-        "command": "manifesto.manifestoChat",
-        "title": "Start Manifesto Chat",
-        "icon": "$(shield)"
+        "command": "manifestoEnforcer.testConnection",
+        "title": "🔧 Test Piggie Connection",
+        "icon": "$(debug)"
       },
       {
-        "command": "manifesto.sendManifestoToChat",
-        "title": "Send Manifesto to Chat",
-        "icon": "$(book)"
-      },
-      {
-        "command": "manifesto.complianceCheck",
-        "title": "Run Compliance Check",
+        "command": "piggie.discoverAPIs",
+        "title": "🔍 Piggie: Discover AI Agent APIs",
         "icon": "$(search)"
       },
       {
-        "command": "manifesto.vibeChat",
-        "title": "Start Vibe Chat",
-        "icon": "$(comment)"
-      },
-      {
-        "command": "manifesto.manifestoChat",
-        "title": "Start Manifesto Chat",
+        "command": "manifestoEnforcer.reviewSelectedCode",
+        "title": "🐷 Piggie: Review Selected Code",
         "icon": "$(shield)"
       },
       {
-        "command": "manifesto.sendManifestoToChat",
-        "title": "Send Manifesto to Chat",
-        "icon": "$(book)"
+        "command": "manifestoEnforcer.refactorSelectedCode",
+        "title": "🐷 Piggie: Refactor Selected Code",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "manifestoEnforcer.explainSelectedCode",
+        "title": "🐷 Piggie: Explain Selected Code",
+        "icon": "$(question)"
+      },
+      {
+        "command": "manifestoEnforcer.sendToAmazonQ",
+        "title": "🐷 Send to Amazon Q (Manifesto Enhanced)",
+        "icon": "$(cloud)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "manifesto-container",
+          "id": "manifesto-enforcer",
           "title": "Manifesto Enforcer",
           "icon": "$(shield)"
         }
       ]
     },
     "views": {
-      "manifesto-container": [
+      "manifesto-enforcer": [
         {
-          "id": "manifestoPanel",
-          "name": "Project Manifesto",
+          "id": "piggieActions",
+          "name": "🐷 Piggie Actions",
           "when": "workspaceFolderCount > 0"
         },
         {
-          "id": "manifestoActions",
-          "name": "Quick Actions",
+          "id": "piggieChatPanel",
+          "name": "💬 Chat with Piggie",
+          "type": "webview",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "piggieSecurityReview",
+          "name": "🔒 Security Review",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "manifestoRules",
+          "name": "🛡️ Manifesto Rules",
           "when": "workspaceFolderCount > 0"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "manifestoPanel",
-        "contents": "No manifesto file configured for this project.\n\n[$(file-code) Create from Template](command:manifesto.createFromTemplate)\n[$(add) Create Blank Manifesto](command:manifesto.createManifesto)\n[$(folder-opened) Set Existing Manifesto](command:manifesto.setManifestoPath)"
-      },
-      {
-        "view": "manifestoActions",
-        "contents": "Ready for some vibe coding?\n\n[$(comment) Start Vibe Chat](command:manifesto.vibeChat)\n[$(shield) Start Manifesto Chat](command:manifesto.manifestoChat)\n[$(book) Send Manifesto to Chat](command:manifesto.sendManifestoToChat)\n\n---\n\n[$(search) Run Compliance Check](command:manifesto.complianceCheck)\n\n---\n\nOr select code for refactoring options."
-      }
-    ],
     "menus": {
       "editor/context": [
         {
+          "command": "manifestoEnforcer.reviewSelectedCode",
           "when": "editorHasSelection",
-          "command": "manifesto.refactorWithToggle",
-          "group": "1_modification@1"
+          "group": "piggie@1"
         },
         {
+          "command": "manifestoEnforcer.refactorSelectedCode",
           "when": "editorHasSelection",
-          "command": "manifesto.quickRefactor",
-          "group": "1_modification@2"
+          "group": "piggie@2"
         },
         {
+          "command": "manifestoEnforcer.explainSelectedCode",
           "when": "editorHasSelection",
-          "command": "manifesto.strictRefactor",
-          "group": "1_modification@3"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "manifesto.refresh",
-          "when": "view == manifestoPanel",
-          "group": "navigation"
+          "group": "piggie@3"
         },
         {
-          "command": "manifesto.setManifestoPath",
-          "when": "view == manifestoPanel",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "manifesto.toggleStrictMode",
-          "when": "view == manifestoPanel && viewItem == modeToggle"
+          "command": "manifestoEnforcer.sendToAmazonQ",
+          "when": "editorHasSelection",
+          "group": "piggie@4"
         }
       ]
     },
     "configuration": {
-      "title": "Manifesto",
+      "title": "Manifesto Enforcer",
       "properties": {
-        "manifesto.filePath": {
+        "manifestoEnforcer.manifestoPath": {
           "type": "string",
           "default": "manifesto.md",
-          "description": "Path to the development manifesto .md file. Can be absolute, but a path relative to the workspace root is recommended.",
+          "description": "Path to the development manifesto file",
           "scope": "resource"
         },
-        "manifesto.aiProvider": {
+        "manifestoEnforcer.defaultAgent": {
           "type": "string",
-          "scope": "resource",
-          "default": "None (Manual Paste)",
-          "description": "Select the AI chat provider to automatically open after copying the prompt.",
+          "default": "auggie",
           "enum": [
-            "None (Manual Paste)",
-            "Augment Code",
-            "Amazon Q",
-            "Claude",
-            "GitHub Copilot Chat"
+            "auggie",
+            "amazon-q",
+            "cline",
+            "copilot",
+            "openai",
+            "local"
           ],
-          "enumDescriptions": [
-            "Only copies the prompt to the clipboard. You open the chat manually.",
-            "For use with the Augment Code extension.",
-            "For use with the Amazon Q extension.",
-            "For use with the official Anthropic Claude extension.",
-            "For use with the GitHub Copilot Chat extension."
-          ]
+          "description": "Default AI agent for Piggie to use"
+        },
+        "manifestoEnforcer.strictMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable strict manifesto compliance checking"
+        },
+        "manifestoEnforcer.autoWriteCode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Let Piggie automatically write code to files (requires confirmation)"
+        },
+        "manifestoEnforcer.performanceMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor Piggie's response times (manifesto requirement)"
+        },
+        "manifestoEnforcer.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug mode with detailed logging"
+        },
+        "manifestoEnforcer.connectionTimeout": {
+          "type": "number",
+          "default": 5000,
+          "description": "Timeout for agent connections (milliseconds)"
+        },
+        "manifestoEnforcer.defaultMode": {
+          "type": "string",
+          "default": "chat",
+          "enum": [
+            "chat",
+            "agent"
+          ],
+          "description": "Default mode for Piggie: 'chat' for explanations only, 'agent' for performing actions"
+        },
+        "manifestoEnforcer.autoMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto mode: automatically execute commands without confirmation (default: false for safety)"
+        },
+        "manifestoEnforcer.fontSize": {
+          "type": "string",
+          "default": "medium",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Font size for chat messages: small, medium, or large"
+        },
+        "manifestoEnforcer.showEmojis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show emojis in chat responses (default: true)"
         }
       }
     }
@@ -207,14 +246,22 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "devDependencies": {
-    "@types/vscode": "^1.84.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "18.x",
+    "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
     "eslint": "^8.54.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
     "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "crypto": "^1.0.1"
   }
 }
