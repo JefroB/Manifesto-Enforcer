@@ -1,6 +1,6 @@
-# 🛡️ Manifesto Enforcer - Enterprise AI Development Assistant
+# 🛡️ Manifesto Enforcer - AI Development Assistant
 
-**VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, and manifesto-compliant development.**
+**VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
 [![Version](https://img.shields.io/badge/version-0.0.5--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
@@ -47,10 +47,13 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 - **Custom Rule Support** - Adapt to your company's specific requirements
 - **Smart Generation** - Creates project-specific manifestos from codebase analysis
 - **Multi-Type Support** - Separate dev, QA, security, API manifestos
+- **Framework-Aware QA** - Detects WebDriver.io, Selenium, Cypress, Playwright, Jest, etc.
+- **Chat Generation** - "Generate QA manifesto" creates comprehensive testing standards
 
 ### **📖 Enterprise Glossary System**
-- **Team Acronym Management** - Define and manage company-specific terms
+- **Chat-Based Management** - Add terms naturally: "Define API as Application Programming Interface"
 - **Smart Integration** - Automatically adds definitions to AI responses
+- **Natural Lookup** - Ask "What does SLA mean?" for instant definitions
 - **Import/Export** - JSON and CSV format support for team sharing
 - **Usage Analytics** - Track which terms are most referenced
 - **Persistent Storage** - Saves glossary across sessions
@@ -115,11 +118,19 @@ code --install-extension manifesto-enforcer-0.0.5-alpha.vsix
 # Basic chat
 "Hello, can you help me with manifesto-compliant development?"
 
+# Glossary management
+"Define API as Application Programming Interface"
+"What does SLA mean?"
+"Show glossary"
+
 # File analysis
 "show me extension.ts"
 
 # Smart editing
 "edit extension.ts to add better error handling"
+
+# Manifesto generation
+"Generate QA manifesto"
 
 # MR analysis
 "analyze https://github.com/owner/repo/pull/123"
@@ -163,8 +174,23 @@ When using Amazon Q, the Manifesto Enforcer extension automatically:
 - **Includes relevant glossary terms** without exceeding limits
 
 ### **Glossary Management**
-Create `glossary.json` in your project root, or use the built-in manager:
+**Natural Chat Commands:**
+```
+# Add terms through conversation
+"Define API as Application Programming Interface"
+"Add term SLA meaning Service Level Agreement"
+"Define JWT as JSON Web Token"
 
+# Look up terms
+"What does API mean?"
+"What is SLA?"
+
+# Manage glossary
+"Show glossary"
+"Remove API"
+```
+
+**Or import existing glossary:**
 ```json
 {
   "API": "Application Programming Interface",
@@ -175,11 +201,11 @@ Create `glossary.json` in your project root, or use the built-in manager:
 }
 ```
 
-**Or use the UI:**
-1. Click "📖 Manage Glossary" in Piggie's chat
-2. Add terms manually or import from file
-3. Export for team sharing
-4. Terms automatically enhance all AI responses
+**Features:**
+- Terms automatically enhance all AI responses
+- Usage tracking shows most referenced terms
+- Persistent storage across VSCode sessions
+- Perfect for teams with extensive acronyms
 
 ## 🎯 Use Cases
 
@@ -242,6 +268,28 @@ AI: "To implement JWT authentication...
 - Suggests re-indexing for updated intelligence
 - Debounces rapid changes to avoid spam
 - Maintains performance with smart thresholds
+```
+
+### **🧪 Comprehensive QA Manifesto Generation**
+```bash
+# Detects your testing frameworks and generates tailored standards:
+User: "Generate QA manifesto"
+
+# Analyzes codebase and creates framework-specific guidelines for:
+✅ WebDriver.io - Page Object Model, explicit waits, parallel execution
+✅ Selenium - WebDriverWait, CSS selectors, TestNG annotations
+✅ Cypress - data-cy attributes, cy.intercept(), custom commands
+✅ Playwright - auto-waiting, parallel execution, built-in assertions
+✅ Jest/Mocha - Unit testing patterns and best practices
+✅ Cucumber/BDD - Gherkin standards and living documentation
+✅ Appium - Mobile testing on real devices, accessibility IDs
+✅ API Testing - Schema validation, error scenarios, response times
+
+# Plus comprehensive coverage of:
+- Test pyramid strategy (70% unit, 20% integration, 10% E2E)
+- CI/CD integration requirements
+- Test data management
+- Quality metrics and reporting
 ```
 
 ## 🔍 MR/PR Analysis Example
@@ -348,12 +396,14 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 ### **v0.0.5-alpha - CURRENT ✅**
 - [x] **Multi-AI Support** (Auggie, Amazon Q, Cline, Local)
 - [x] **Persistent Codebase Indexing** with 24hr cache
-- [x] **Enterprise Glossary System** with import/export
+- [x] **Chat-Based Glossary System** with natural language commands
 - [x] **Smart Manifesto Generation** from codebase analysis
+- [x] **Comprehensive QA Manifesto** for WebDriver.io, Selenium, Cypress, Playwright, etc.
 - [x] **File Change Detection** with auto re-index suggestions
 - [x] **MR/PR Analysis System** for automated code review
 - [x] **Token Optimization** for enterprise AI limits
 - [x] **Context-Aware Code Generation**
+- [x] **Glossary-Enhanced Responses** with automatic term definitions
 
 ### **v0.1.0 - Enterprise Integration**
 - [ ] GitHub/GitLab API authentication for real MR analysis

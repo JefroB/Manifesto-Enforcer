@@ -1455,8 +1455,16 @@ async function generateManifestoCompliantResponse(userInput: string): Promise<st
         const isManifestoRequest = /\b(manifesto|rules|read|show|display)\b/i.test(userInput) && /\b(manifesto|rules)\b/i.test(userInput);
         const isFileRequest = /\b(read|show|open|view)\b/i.test(userInput) && /\.(ts|js|tsx|jsx|py|java|cs|cpp|h|md|json)\b/i.test(userInput);
         const isMRRequest = /\b(mr|merge request|pull request|pr|analyze)\b/i.test(userInput) && /(github\.com|gitlab\.com|gitlab\.)/i.test(userInput);
+        const isGlossaryRequest = /\b(glossary|define|add term|add definition|what does.*mean|acronym)\b/i.test(userInput);
+        const isManifestoGenRequest = /\b(generate|create)\b.*\b(manifesto|qa manifesto|testing manifesto)\b/i.test(userInput);
 
-        if (isMRRequest) {
+        if (isGlossaryRequest) {
+            return await handleGlossaryChat(userInput);
+
+        } else if (isManifestoGenRequest) {
+            return await handleManifestoGeneration(userInput);
+
+        } else if (isMRRequest) {
             // Extract MR/PR URL from input
             const urlMatch = userInput.match(/(https?:\/\/(?:github\.com|gitlab\.com|gitlab\.[^\/]+)\/[^\s]+)/i);
             if (urlMatch) {
@@ -3006,7 +3014,15 @@ async function analyzeManifestoOpportunities(): Promise<any> {
 
     // Suggest specific manifesto types based on codebase
     if (codebaseAnalysis.hasTests) {
-        suggestions.push('🧪 **QA Manifesto** - Generate testing standards based on your existing test patterns');
+        const frameworks = Array.from(codebaseAnalysis.frameworks).filter((f: any) =>
+            ['WebDriver.io', 'Selenium', 'Cypress', 'Playwright', 'Puppeteer', 'Jest', 'Mocha', 'Cucumber/BDD', 'Appium'].includes(f as string)
+        );
+
+        if (frameworks.length > 0) {
+            suggestions.push(`🧪 **QA Manifesto** - Generate testing standards for ${frameworks.join(', ')} based on your existing test patterns`);
+        } else {
+            suggestions.push('🧪 **QA Manifesto** - Generate testing standards based on your existing test patterns');
+        }
     }
 
     if (codebaseAnalysis.hasSecurityPatterns) {
@@ -3089,10 +3105,93 @@ function analyzeCodebasePatterns(): any {
         if (filename.endsWith('.java')) analysis.languages.add('Java');
         if (filename.endsWith('.cs')) analysis.languages.add('C#');
 
-        // Detect test files
-        if (filename.includes('test') || filename.includes('spec') ||
-            content.includes('describe(') || content.includes('it(') || content.includes('test(')) {
+        // Detect test files and frameworks
+        const testPatterns = [
+            // File patterns
+            filename.includes('test') || filename.includes('spec') || filename.includes('.test.') || filename.includes('.spec.'),
+
+            // Jest/Mocha/Jasmine patterns
+            content.includes('describe(') || content.includes('it(') || content.includes('test(') || content.includes('expect('),
+
+            // WebDriver.io patterns
+            content.includes('browser.') || content.includes('$$(') || content.includes('browser.url') ||
+            content.includes('wdio') || content.includes('webdriver'),
+
+            // Selenium patterns
+            content.includes('selenium') || content.includes('webdriver') || content.includes('driver.find') ||
+            content.includes('by.id') || content.includes('by.xpath') || content.includes('by.css'),
+
+            // Cypress patterns
+            content.includes('cy.') || content.includes('cypress') || content.includes('cy.visit') || content.includes('cy.get'),
+
+            // Playwright patterns
+            content.includes('playwright') || content.includes('page.goto') || content.includes('page.click') ||
+            content.includes('page.fill') || content.includes('page.locator'),
+
+            // Puppeteer patterns
+            content.includes('puppeteer') || content.includes('page.evaluate') || content.includes('page.screenshot'),
+
+            // TestCafe patterns
+            content.includes('testcafe') || content.includes('fixture(') || content.includes('test(') && content.includes('selector'),
+
+            // Protractor patterns (legacy Angular)
+            content.includes('protractor') || content.includes('element(') || content.includes('browser.get'),
+
+            // Robot Framework patterns
+            content.includes('robot framework') || content.includes('*** test cases ***') || content.includes('*** keywords ***'),
+
+            // Cucumber/Gherkin patterns
+            content.includes('given(') || content.includes('when(') || content.includes('then(') ||
+            content.includes('feature:') || content.includes('scenario:') || content.includes('gherkin'),
+
+            // API testing patterns
+            content.includes('supertest') || content.includes('chai') || content.includes('request(') ||
+            content.includes('postman') || content.includes('newman') || content.includes('rest-assured'),
+
+            // Load testing patterns
+            content.includes('jmeter') || content.includes('k6') || content.includes('artillery') ||
+            content.includes('loadtest') || content.includes('stress test'),
+
+            // Unit testing patterns
+            content.includes('junit') || content.includes('nunit') || content.includes('xunit') ||
+            content.includes('pytest') || content.includes('unittest') || content.includes('rspec'),
+
+            // Mobile testing patterns
+            content.includes('appium') || content.includes('espresso') || content.includes('xcuitest') ||
+            content.includes('detox') || content.includes('mobile test')
+        ];
+
+        if (testPatterns.some(pattern => pattern)) {
             analysis.hasTests = true;
+
+            // Detect specific testing frameworks for better manifesto suggestions
+            if (content.includes('wdio') || content.includes('webdriver.io')) {
+                analysis.frameworks.add('WebDriver.io');
+            }
+            if (content.includes('selenium')) {
+                analysis.frameworks.add('Selenium');
+            }
+            if (content.includes('cypress')) {
+                analysis.frameworks.add('Cypress');
+            }
+            if (content.includes('playwright')) {
+                analysis.frameworks.add('Playwright');
+            }
+            if (content.includes('puppeteer')) {
+                analysis.frameworks.add('Puppeteer');
+            }
+            if (content.includes('jest')) {
+                analysis.frameworks.add('Jest');
+            }
+            if (content.includes('mocha')) {
+                analysis.frameworks.add('Mocha');
+            }
+            if (content.includes('cucumber') || content.includes('gherkin')) {
+                analysis.frameworks.add('Cucumber/BDD');
+            }
+            if (content.includes('appium')) {
+                analysis.frameworks.add('Appium');
+            }
         }
 
         // Detect security patterns
@@ -3122,6 +3221,140 @@ function analyzeCodebasePatterns(): any {
     }
 
     return analysis;
+}
+
+/**
+ * Generate QA manifesto based on detected testing frameworks
+ */
+function generateQAManifesto(frameworks: Set<string>, languages: Set<string>): string {
+    const detectedFrameworks = Array.from(frameworks).filter(f =>
+        ['WebDriver.io', 'Selenium', 'Cypress', 'Playwright', 'Puppeteer', 'Jest', 'Mocha', 'Cucumber/BDD', 'Appium'].includes(f)
+    );
+
+    let manifesto = `# QA Testing Manifesto\n\n`;
+    manifesto += `**Generated for:** ${Array.from(languages).join(', ')} project\n`;
+    manifesto += `**Testing Frameworks Detected:** ${detectedFrameworks.join(', ') || 'Generic'}\n\n`;
+
+    // Core QA principles
+    manifesto += `## Core QA Principles\n\n`;
+    manifesto += `### Test Pyramid Strategy\n`;
+    manifesto += `- **70% Unit Tests** - Fast, isolated, comprehensive coverage\n`;
+    manifesto += `- **20% Integration Tests** - API endpoints, service interactions\n`;
+    manifesto += `- **10% E2E Tests** - Critical user journeys only\n\n`;
+
+    manifesto += `### Quality Gates\n`;
+    manifesto += `- **80%+ code coverage** required for all new code\n`;
+    manifesto += `- **All tests must pass** before merge to main branch\n`;
+    manifesto += `- **Performance tests** for critical paths\n`;
+    manifesto += `- **Security tests** for authentication and data handling\n\n`;
+
+    // Framework-specific guidelines
+    if (detectedFrameworks.includes('WebDriver.io')) {
+        manifesto += `## WebDriver.io Standards\n\n`;
+        manifesto += `### Page Object Model\n`;
+        manifesto += `- Use Page Object Model pattern for all UI tests\n`;
+        manifesto += `- Separate page objects from test logic\n`;
+        manifesto += `- Use descriptive selectors (data-testid preferred)\n\n`;
+
+        manifesto += `### WebDriver.io Best Practices\n`;
+        manifesto += `- Configure explicit waits (no hardcoded sleeps)\n`;
+        manifesto += `- Use browser.waitUntil() for dynamic content\n`;
+        manifesto += `- Implement retry logic for flaky tests\n`;
+        manifesto += `- Use allure reporting for test results\n`;
+        manifesto += `- Run tests in parallel when possible\n\n`;
+    }
+
+    if (detectedFrameworks.includes('Selenium')) {
+        manifesto += `## Selenium Standards\n\n`;
+        manifesto += `### Selenium Best Practices\n`;
+        manifesto += `- Use WebDriverWait instead of Thread.sleep()\n`;
+        manifesto += `- Implement Page Object Model pattern\n`;
+        manifesto += `- Use CSS selectors over XPath when possible\n`;
+        manifesto += `- Handle stale element exceptions properly\n`;
+        manifesto += `- Use TestNG/JUnit annotations appropriately\n\n`;
+    }
+
+    if (detectedFrameworks.includes('Cypress')) {
+        manifesto += `## Cypress Standards\n\n`;
+        manifesto += `### Cypress Best Practices\n`;
+        manifesto += `- Use data-cy attributes for element selection\n`;
+        manifesto += `- Avoid using cy.wait() with hardcoded times\n`;
+        manifesto += `- Use cy.intercept() for API mocking\n`;
+        manifesto += `- Keep tests independent and atomic\n`;
+        manifesto += `- Use custom commands for repeated actions\n\n`;
+    }
+
+    if (detectedFrameworks.includes('Playwright')) {
+        manifesto += `## Playwright Standards\n\n`;
+        manifesto += `### Playwright Best Practices\n`;
+        manifesto += `- Use auto-waiting features (no manual waits)\n`;
+        manifesto += `- Implement Page Object Model\n`;
+        manifesto += `- Use test.describe() for test organization\n`;
+        manifesto += `- Configure parallel execution\n`;
+        manifesto += `- Use built-in assertions (expect)\n\n`;
+    }
+
+    // API Testing
+    manifesto += `## API Testing Standards\n\n`;
+    manifesto += `### API Test Requirements\n`;
+    manifesto += `- Test all CRUD operations\n`;
+    manifesto += `- Validate response schemas\n`;
+    manifesto += `- Test error scenarios (4xx, 5xx)\n`;
+    manifesto += `- Verify response times (<200ms for critical APIs)\n`;
+    manifesto += `- Test authentication and authorization\n\n`;
+
+    // Mobile Testing (if Appium detected)
+    if (detectedFrameworks.includes('Appium')) {
+        manifesto += `## Mobile Testing Standards\n\n`;
+        manifesto += `### Appium Best Practices\n`;
+        manifesto += `- Test on real devices when possible\n`;
+        manifesto += `- Use accessibility IDs for element location\n`;
+        manifesto += `- Test both portrait and landscape orientations\n`;
+        manifesto += `- Verify app behavior during interruptions\n`;
+        manifesto += `- Test offline functionality\n\n`;
+    }
+
+    // BDD/Cucumber
+    if (detectedFrameworks.includes('Cucumber/BDD')) {
+        manifesto += `## BDD/Cucumber Standards\n\n`;
+        manifesto += `### Gherkin Best Practices\n`;
+        manifesto += `- Write scenarios from user perspective\n`;
+        manifesto += `- Use Given-When-Then structure consistently\n`;
+        manifesto += `- Keep scenarios focused and atomic\n`;
+        manifesto += `- Use scenario outlines for data-driven tests\n`;
+        manifesto += `- Maintain living documentation\n\n`;
+    }
+
+    // Test Data Management
+    manifesto += `## Test Data Management\n\n`;
+    manifesto += `### Data Strategy\n`;
+    manifesto += `- Use test data factories/builders\n`;
+    manifesto += `- Clean up test data after each test\n`;
+    manifesto += `- Use database transactions for isolation\n`;
+    manifesto += `- Avoid dependencies on external data\n`;
+    manifesto += `- Use meaningful test data (not random strings)\n\n`;
+
+    // CI/CD Integration
+    manifesto += `## CI/CD Integration\n\n`;
+    manifesto += `### Pipeline Requirements\n`;
+    manifesto += `- Unit tests run on every commit\n`;
+    manifesto += `- Integration tests run on PR creation\n`;
+    manifesto += `- E2E tests run on staging deployment\n`;
+    manifesto += `- Performance tests run nightly\n`;
+    manifesto += `- Test results published to team dashboard\n\n`;
+
+    // Reporting and Metrics
+    manifesto += `## Reporting and Metrics\n\n`;
+    manifesto += `### Quality Metrics\n`;
+    manifesto += `- Track test execution time trends\n`;
+    manifesto += `- Monitor test flakiness rates\n`;
+    manifesto += `- Measure code coverage by component\n`;
+    manifesto += `- Report defect escape rates\n`;
+    manifesto += `- Track automation coverage percentage\n\n`;
+
+    manifesto += `---\n*Generated by Manifesto Enforcer based on detected testing frameworks*`;
+
+    return manifesto;
 }
 
 /**
@@ -3273,6 +3506,133 @@ function setupFileChangeDetection(): void {
     fileWatcher.onDidDelete(handleFileChange);
 
     console.log('👁️ File change detection enabled');
+}
+
+/**
+ * Handle glossary requests through natural chat
+ */
+async function handleGlossaryChat(userInput: string): Promise<string> {
+    const input = userInput.toLowerCase();
+
+    // Pattern: "define [term] as [definition]" or "add term [term] meaning [definition]"
+    const defineMatch = userInput.match(/(?:define|add term|add definition)\s+([^:=]+?)(?:\s+(?:as|means?|is|=|:)\s+(.+))?$/i);
+
+    if (defineMatch) {
+        const term = defineMatch[1].trim();
+        const definition = defineMatch[2]?.trim();
+
+        if (definition) {
+            // Add the term
+            projectGlossary.set(term.toUpperCase(), {
+                term: term,
+                definition: definition,
+                dateAdded: Date.now(),
+                usage: 0
+            });
+
+            // Save to storage - we'll need to get context from somewhere
+            // For now, just add to memory
+            console.log(`Added glossary term: ${term} = ${definition}`);
+
+            return `✅ **Added to glossary:**\n\n**${term}**: ${definition}\n\nI'll now automatically include this definition when you mention "${term}" in our conversations.`;
+        } else {
+            // Ask for definition
+            return `📖 I'd be happy to add **${term}** to the glossary! What does it mean?\n\nJust say: "Define ${term} as [your definition]"`;
+        }
+    }
+
+    // Pattern: "what does [term] mean?" or "what is [term]?"
+    const lookupMatch = userInput.match(/(?:what (?:does|is)|define)\s+([^?]+?)(?:\s+mean|\?|$)/i);
+
+    if (lookupMatch) {
+        const term = lookupMatch[1].trim();
+        const upperTerm = term.toUpperCase();
+
+        if (projectGlossary.has(upperTerm)) {
+            const termData = projectGlossary.get(upperTerm)!;
+            termData.usage++;
+
+            return `📖 **${termData.term}**: ${termData.definition}\n\n*Used ${termData.usage} time${termData.usage !== 1 ? 's' : ''} in our conversations*`;
+        } else {
+            return `❓ I don't have **${term}** in the glossary yet.\n\nWould you like to add it? Just say: "Define ${term} as [your definition]"`;
+        }
+    }
+
+    // Pattern: "show glossary" or "list terms"
+    if (/(?:show|list|display)\s+(?:glossary|terms|definitions)/i.test(userInput)) {
+        if (projectGlossary.size === 0) {
+            return `📖 **Glossary is empty**\n\nAdd terms by saying things like:\n• "Define API as Application Programming Interface"\n• "Add term SLA meaning Service Level Agreement"\n• "Define JWT as JSON Web Token"`;
+        }
+
+        let response = `📖 **Project Glossary** (${projectGlossary.size} terms):\n\n`;
+        const sortedTerms = Array.from(projectGlossary.values()).sort((a, b) => a.term.localeCompare(b.term));
+
+        for (const termData of sortedTerms) {
+            response += `**${termData.term}**: ${termData.definition}`;
+            if (termData.usage > 0) {
+                response += ` *(used ${termData.usage}x)*`;
+            }
+            response += '\n';
+        }
+
+        response += `\n💡 **Add more terms** by saying: "Define [term] as [definition]"`;
+        return response;
+    }
+
+    // Pattern: "remove [term]" or "delete [term]"
+    const removeMatch = userInput.match(/(?:remove|delete)\s+(?:term\s+)?([^?]+?)(?:\?|$)/i);
+
+    if (removeMatch) {
+        const term = removeMatch[1].trim();
+        const upperTerm = term.toUpperCase();
+
+        if (projectGlossary.has(upperTerm)) {
+            projectGlossary.delete(upperTerm);
+            return `✅ Removed **${term}** from the glossary.`;
+        } else {
+            return `❌ **${term}** is not in the glossary.`;
+        }
+    }
+
+    // General glossary help
+    return `📖 **Glossary Commands:**\n\n**Add terms:**\n• "Define API as Application Programming Interface"\n• "Add term SLA meaning Service Level Agreement"\n\n**Look up terms:**\n• "What does API mean?"\n• "What is SLA?"\n\n**Manage glossary:**\n• "Show glossary" - List all terms\n• "Remove API" - Delete a term\n\n**Current glossary:** ${projectGlossary.size} terms defined`;
+}
+
+/**
+ * Handle manifesto generation requests through chat
+ */
+async function handleManifestoGeneration(userInput: string): Promise<string> {
+    if (!isCodebaseIndexed) {
+        return `⚠️ **Codebase not indexed yet!**\n\nI need to analyze your codebase first to generate relevant manifestos.\n\nPlease click "📚 Index Codebase" first, then try again.`;
+    }
+
+    const input = userInput.toLowerCase();
+
+    // Analyze the current codebase
+    const analysis = analyzeCodebasePatterns();
+
+    if (input.includes('qa') || input.includes('testing')) {
+        // Generate QA manifesto
+        if (!analysis.hasTests) {
+            return `❌ **No testing frameworks detected**\n\nI couldn't find any testing frameworks in your codebase. Consider adding:\n\n**Web Testing:**\n• WebDriver.io for robust E2E testing\n• Cypress for modern web testing\n• Playwright for cross-browser testing\n\n**Unit Testing:**\n• Jest for JavaScript/TypeScript\n• Mocha + Chai for flexible testing\n• PyTest for Python\n\n**API Testing:**\n• Supertest for Node.js APIs\n• Rest-Assured for Java APIs\n\nOnce you have tests, I can generate a comprehensive QA manifesto!`;
+        }
+
+        const qaManifesto = generateQAManifesto(analysis.frameworks, analysis.languages);
+
+        // Offer to save the manifesto
+        return `🧪 **QA Manifesto Generated!**\n\nBased on your codebase analysis, I've created a comprehensive QA manifesto for:\n\n**Languages:** ${Array.from(analysis.languages).join(', ')}\n**Testing Frameworks:** ${Array.from(analysis.frameworks).filter(f =>
+            ['WebDriver.io', 'Selenium', 'Cypress', 'Playwright', 'Puppeteer', 'Jest', 'Mocha', 'Cucumber/BDD', 'Appium'].includes(f as string)
+        ).join(', ') || 'Generic'}\n\n---\n\n${qaManifesto}\n\n---\n\n💾 **Want to save this?** I can create a \`qa-manifesto.md\` file in your workspace. Just say "save qa manifesto"`;
+    }
+
+    // General manifesto generation
+    const manifestoAnalysis = await analyzeManifestoOpportunities();
+
+    if (manifestoAnalysis.suggestions.length === 0) {
+        return `📋 **Ready to generate manifestos!**\n\nI can create manifestos based on your codebase patterns:\n\n**Available types:**\n• "Generate QA manifesto" - Testing standards\n• "Generate security manifesto" - Security guidelines\n• "Generate API manifesto" - API standards\n• "Generate frontend manifesto" - UI component standards\n\nWhat type would you like me to create?`;
+    }
+
+    return `📋 **Manifesto Generation Options:**\n\n${manifestoAnalysis.suggestions.join('\n')}\n\n**To generate:** Just say "Generate [type] manifesto"\n\nExample: "Generate QA manifesto" or "Generate security manifesto"`;
 }
 
 export function deactivate() {
