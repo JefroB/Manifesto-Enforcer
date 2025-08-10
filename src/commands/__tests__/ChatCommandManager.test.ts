@@ -1,5 +1,6 @@
 import { ChatCommandManager } from '../ChatCommandManager';
 import { StateManager } from '../../core/StateManager';
+import { AgentManager } from '../../agents/AgentManager';
 
 /**
  * Test suite for the ChatCommandManager
@@ -8,10 +9,11 @@ import { StateManager } from '../../core/StateManager';
 describe('ChatCommandManager', () => {
     let commandManager: ChatCommandManager;
     let mockStateManager: StateManager;
+    let mockAgentManager: AgentManager;
 
     beforeEach(() => {
         commandManager = new ChatCommandManager();
-        
+
         // Create a mock StateManager
         mockStateManager = {
             isCodebaseIndexed: false,
@@ -20,6 +22,13 @@ describe('ChatCommandManager', () => {
             projectGlossary: new Map(),
             manifestoRules: [],
             codebaseIndexTimestamp: 0
+        } as any;
+
+        // Create a mock AgentManager
+        mockAgentManager = {
+            sendMessage: jest.fn().mockResolvedValue({ content: 'Mock agent response' }),
+            getActiveAgent: jest.fn().mockReturnValue(null),
+            getAvailableAgents: jest.fn().mockReturnValue([])
         } as any;
     });
 
@@ -83,12 +92,12 @@ describe('ChatCommandManager', () => {
 
     describe('Command Execution', () => {
         test('should execute commands and return responses', async () => {
-            const response = await commandManager.handleMessage('test functionality', mockStateManager);
+            const response = await commandManager.handleMessage('test functionality', mockStateManager, mockAgentManager);
             expect(response).toContain('Piggie works');
         });
 
         test('should handle unmatched commands gracefully', async () => {
-            const response = await commandManager.handleMessage('random unmatched input', mockStateManager);
+            const response = await commandManager.handleMessage('random unmatched input', mockStateManager, mockAgentManager);
             expect(response).toContain('Piggie here');
             expect(response).toContain('Available Commands');
         });
@@ -118,7 +127,7 @@ describe('ChatCommandManager', () => {
             const mockCommand = {
                 command: '/test',
                 canHandle: (input: string) => input.includes('test'),
-                execute: async () => 'Test response'
+                execute: async (input: string, stateManager: StateManager, agentManager: AgentManager) => 'Test response'
             };
 
             commandManager.addCommand(mockCommand);

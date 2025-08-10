@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling glossary-related requests
@@ -35,7 +36,7 @@ export class GlossaryCommand implements IChatCommand {
     /**
      * Executes the glossary command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             const trimmedInput = input.trim();
             let response: string;

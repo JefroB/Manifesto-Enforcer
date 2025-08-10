@@ -4,7 +4,7 @@
 
 **VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
-[![Version](https://img.shields.io/badge/version-0.0.7--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
+[![Version](https://img.shields.io/badge/version-0.0.61--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
@@ -501,6 +501,41 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **Issues**: [GitHub Issues](https://github.com/JefroB/Manifesto-Enforcer/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/JefroB/Manifesto-Enforcer/discussions)
 - **Enterprise Support**: Contact for custom enterprise features
+
+## 📋 Changelog
+
+### v0.0.61-alpha (2025-01-15)
+**🏗️ Critical Infrastructure & Reliability Improvements**
+
+#### **🚨 Critical Fixes**
+- **Fixed AI Response Loops**: Prevented identical responses by excluding AI-generated analysis files from indexing
+- **Fixed Massive Over-Indexing**: Resolved issue where 6000+ files were indexed instead of expected ~50
+- **Fixed Chat History Loss**: Implemented smart chat caching that persists conversations across sessions
+- **Fixed Button Spam Issues**: Added proper race condition protection for indexing operations
+
+#### **🧠 Smart Chat System**
+- **Persistent Chat History**: Conversations now survive webview reloads and navigation
+- **Real-Time State Display**: Shows accurate current indexing state, never stale cached data
+- **Infrastructure Health Monitoring**: Automatic detection and warnings for indexing anomalies
+- **Smart Welcome Messages**: Context-aware greetings based on current system state
+
+#### **🛡️ File Management & Security**
+- **Smart File Lifecycle Management**: Different strategies for manifestos, glossaries, and analysis files
+- **AI Response Loop Prevention**: Excludes problematic files while preserving valuable AI-generated content
+- **Manifesto Protection**: Triple-confirmation system with typed verification for manifesto deletion
+- **Automatic Cleanup**: Strategic cleanup of old analysis files and legacy backups
+
+#### **📊 Enhanced Reliability**
+- **Race Condition Protection**: Prevents overlapping indexing operations
+- **Comprehensive Error Handling**: Robust error recovery throughout the system
+- **Performance Monitoring**: Tracks and validates system health metrics
+- **Gitignore Integration**: Respects project exclusion patterns for accurate indexing
+
+#### **🎯 User Experience**
+- **Button State Management**: Visual feedback during long operations
+- **Health Status Indicators**: Proactive warnings for system issues
+- **Consistent File Counts**: Reliable indexing with expected file counts (~50 files)
+- **Improved Diagnostics**: Detailed logging for troubleshooting
 
 ---
 

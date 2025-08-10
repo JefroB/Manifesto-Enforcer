@@ -9,6 +9,9 @@ import { SecurityReviewProvider } from './view/SecurityReviewProvider';
 import { ManifestoRulesProvider } from './view/ManifestoRulesProvider';
 import { ManifestoCodeActionProvider } from './diagnostics/ManifestoCodeActionProvider';
 import { ChatCommandManager } from './commands';
+import { AgentManager } from './agents/AgentManager';
+import { AuggieAdapter } from './agents/adapters/AuggieAdapter';
+import { AgentConfig, AgentProvider } from './core/types';
 
 /**
  * Extension activation
@@ -375,10 +378,30 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private stateManager: StateManager;
     private commandManager: ChatCommandManager;
+    private agentManager: AgentManager;
 
     constructor(private readonly _extensionUri: vscode.Uri, context?: vscode.ExtensionContext, stateManager?: StateManager) {
         this.stateManager = stateManager || StateManager.getInstance(context);
         this.commandManager = new ChatCommandManager();
+        this.agentManager = new AgentManager();
+        this.initializeAgents();
+    }
+
+    private async initializeAgents(): Promise<void> {
+        try {
+            const auggieConfig: AgentConfig = {
+                id: 'auggie-default',
+                name: 'Auggie',
+                provider: AgentProvider.AUGGIE,
+                isEnabled: true,
+            };
+            const auggieAdapter = new AuggieAdapter(auggieConfig);
+            await this.agentManager.registerAgent(auggieAdapter);
+            console.log('🐷 Auggie agent registered successfully.');
+        } catch (error) {
+            console.error('🐷 Failed to initialize agents:', error);
+            vscode.window.showErrorMessage('Piggie failed to connect to its AI agents.');
+        }
     }
 
     public resolveWebviewView(
@@ -403,9 +426,13 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                         await this.handleUserMessage(data.text);
                         break;
                     case 'indexCodebase':
-                        // This is now handled through the StateManager for consistency
-                        await this.stateManager.startIndexing();
-                        this.updateIndexStatus(); // Notify UI of completion
+                        // CRITICAL: Use handleCodebaseIndexing for proper button state management
+                        await this.handleCodebaseIndexing();
+                        break;
+                    case 'newSession':
+                        // Start a new chat session - clear any session state
+                        console.log('🐷 Starting new chat session');
+                        this.stateManager.clearConversationHistory();
                         break;
                     case 'changeSetting':
                         // Handle specific setting changes with proper validation
@@ -436,12 +463,16 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
             }
         });
 
-        // Initialize status
+        // Initialize status and restore chat history
         this.updateIndexStatus();
+        this.restoreChatHistory();
     }
 
     private async handleCodebaseIndexing(): Promise<void> {
         try {
+            // CRITICAL: Disable button immediately to prevent spam
+            this.setIndexButtonState(false, '⏳ Indexing...');
+
             this.sendResponse('📚 Starting codebase indexing...');
 
             const result = await this.stateManager.startIndexing();
@@ -452,13 +483,42 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
             console.error('Indexing failed:', error);
             this.sendResponse('❌ Failed to index codebase: ' + (error instanceof Error ? error.message : String(error)));
             this.updateIndexStatus();
+        } finally {
+            // MANDATORY: Always re-enable button when done
+            this.setIndexButtonState(true, this.stateManager.isCodebaseIndexed ? '🔄 Re-index' : '📚 Index Codebase');
         }
     }
 
     private async handleUserMessage(message: string): Promise<void> {
         try {
+            // CRITICAL INFRASTRUCTURE: Validate system health before processing
+            const healthCheck = this.validateInfrastructure();
+            if (!healthCheck.isHealthy) {
+                console.warn('Infrastructure issues detected:', healthCheck.issues);
+                // Still process the message but log the issues
+            }
+
+            // Add user message to conversation history
+            const userMessage: any = {
+                id: `user-${Date.now()}`,
+                role: 'user',
+                content: message,
+                timestamp: new Date()
+            };
+            this.stateManager.addToConversationHistory(userMessage);
+
             // Use the ChatCommandManager instead of the old if/else if block
-            const response = await this.commandManager.handleMessage(message, this.stateManager);
+            const response = await this.commandManager.handleMessage(message, this.stateManager, this.agentManager);
+
+            // Add assistant response to conversation history
+            const assistantMessage: any = {
+                id: `assistant-${Date.now()}`,
+                role: 'assistant',
+                content: response,
+                timestamp: new Date()
+            };
+            this.stateManager.addToConversationHistory(assistantMessage);
+
             this.sendResponse(response);
         } catch (error) {
             this.sendResponse('🐷 Error: ' + error);
@@ -505,8 +565,155 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    /**
+     * Restore chat history when webview reloads
+     * CRITICAL: Smart caching to maintain conversation context
+     */
+    private restoreChatHistory(): void {
+        if (!this._view) {
+            return;
+        }
+
+        try {
+            // Get conversation history from StateManager
+            const history = this.stateManager.getConversationHistory();
+
+            if (history && history.length > 0) {
+                console.log(`🧠 Restoring ${history.length} chat messages`);
+
+                // Send each message to rebuild the chat UI
+                for (const message of history) {
+                    this._view.webview.postMessage({
+                        command: 'restoreMessage',
+                        role: message.role,
+                        content: message.content,
+                        timestamp: message.timestamp
+                    });
+                }
+
+                // Send a separator to show this is restored content
+                this._view.webview.postMessage({
+                    command: 'addMessage',
+                    content: '--- Chat History Restored ---',
+                    role: 'system'
+                });
+            } else {
+                // Send welcome message with CURRENT state (not cached)
+                const currentStats = this.stateManager.getIndexingStats();
+                const welcomeMessage = this.generateSmartWelcomeMessage(currentStats);
+
+                this._view.webview.postMessage({
+                    command: 'addMessage',
+                    content: welcomeMessage,
+                    role: 'assistant'
+                });
+
+                // CRITICAL INFRASTRUCTURE: Show health warnings if needed
+                if (currentStats.healthStatus !== 'healthy' && currentStats.healthMessage) {
+                    this._view.webview.postMessage({
+                        command: 'addMessage',
+                        content: `🏥 **Infrastructure Health**: ${currentStats.healthMessage}`,
+                        role: 'system'
+                    });
+                }
+            }
+
+        } catch (error) {
+            console.error('Failed to restore chat history:', error);
+        }
+    }
+
+    /**
+     * Generate smart welcome message with CURRENT state
+     * CRITICAL INFRASTRUCTURE: Shows accurate current state, not stale data
+     */
+    private generateSmartWelcomeMessage(stats: any): string {
+        let message = '🐷 Piggie here! ';
+
+        // CRITICAL: Always show real-time state
+        const currentFileCount = this.stateManager.codebaseIndex.size;
+        const isCurrentlyIndexed = this.stateManager.isCodebaseIndexed;
+
+        if (isCurrentlyIndexed && currentFileCount > 0) {
+            message += `I have indexed ${currentFileCount} files from your codebase`;
+
+            // Show additional context if available
+            if (stats.lastResults && stats.lastResults.errors > 0) {
+                message += ` (${stats.lastResults.errors} files had errors)`;
+            }
+
+            message += ' and can provide intelligent assistance.';
+
+            // CRITICAL: Warn if file count seems wrong
+            if (currentFileCount > 200) {
+                message += `\n\n⚠️ **WARNING**: File count (${currentFileCount}) seems unusually high. This may indicate indexing issues.`;
+            }
+        } else {
+            message += 'Ready to help! Click "📚 Index Codebase" to enable intelligent code assistance.';
+        }
+
+        message += '\n\n🛡️ Manifesto Mode is active - I\'ll ensure all suggestions follow best practices.\n\n';
+        message += '**Available Commands:**\n';
+        message += '• **Code Generation:** "Create a UserService class", "Generate hello world"\n';
+        message += '• **Editing:** "Edit UserService.ts", "Modify the login function"\n';
+        message += '• **Linting:** "/lint", "Check code quality", "Fix errors in MyFile.ts"\n';
+        message += '• **Code Analysis:** "/graph", "Show references for MyClass", "Analyze impact"\n';
+        message += '• **Glossary:** "Define API as Application Programming Interface", "What does JWT mean?"\n';
+        message += '• **Cleanup:** "/cleanup", "Clean repository", "Cleanup backups"\n\n';
+        message += 'How can I help with your development needs?';
+
+        return message;
+    }
+
+    /**
+     * Validate critical infrastructure state
+     * CRITICAL INFRASTRUCTURE: Ensure chat and indexing state is healthy
+     */
+    private validateInfrastructure(): { isHealthy: boolean; issues: string[] } {
+        const issues: string[] = [];
+
+        // Check StateManager health
+        if (!this.stateManager) {
+            issues.push('CRITICAL: StateManager not initialized');
+        }
+
+        // Check indexing health
+        const stats = this.stateManager?.getIndexingStats();
+        if (stats) {
+            if (stats.healthStatus === 'error') {
+                issues.push(`INDEXING ERROR: ${stats.healthMessage}`);
+            } else if (stats.healthStatus === 'warning') {
+                issues.push(`INDEXING WARNING: ${stats.healthMessage}`);
+            }
+        }
+
+        // Check conversation history integrity
+        const history = this.stateManager?.getConversationHistory();
+        if (history && history.length > 100) {
+            issues.push('WARNING: Conversation history very large - may impact performance');
+        }
+
+        return {
+            isHealthy: issues.length === 0,
+            issues: issues
+        };
+    }
+
+    /**
+     * Set index button state (enabled/disabled) and text
+     * MANDATORY: Prevent button spam during indexing
+     */
+    private setIndexButtonState(enabled: boolean, text: string): void {
+        if (this._view) {
+            this._view.webview.postMessage({
+                command: 'setIndexButtonState',
+                enabled: enabled,
+                text: text
+            });
+        }
+    }
+
     private _getHtmlForWebview(_webview: vscode.Webview): string {
-        // This is the original V1 UI, which will be adapted to the V2 architecture.
         return `<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -515,19 +722,22 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
             <title>Piggie Chat</title>
             <style>
                 body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); margin: 0; padding: 0; overflow: hidden; }
-                .chat-container { display: flex; flex-direction: column; height: 100vh; }
+                .chat-container { height: 100vh; display: flex; flex-direction: column; }
 
                 /* Top toolbar */
-                .top-toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--vscode-sideBar-background); border-bottom: 1px solid var(--vscode-sideBar-border); }
-                .toolbar-button { padding: 6px 12px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
-                .toolbar-button:hover { background: var(--vscode-button-hoverBackground); }
+                .top-toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--vscode-sideBar-background); border-bottom: 1px solid var(--vscode-sideBar-border); z-index: 10; flex-shrink: 0; }
+                .toolbar-button { padding: 6px 12px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; transition: background-color 0.2s, opacity 0.2s; }
+                .toolbar-button:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+                .toolbar-button:disabled { opacity: 0.6; cursor: not-allowed; background: var(--vscode-button-secondaryBackground); }
                 .status-indicator { font-size: 11px; color: var(--vscode-descriptionForeground); }
 
                 /* Messages area */
-                .messages { flex: 1; overflow-y: auto; padding: 12px; min-height: 0; }
+                .messages { flex-grow: 1; overflow-y: auto; padding: 12px; }
                 .message { padding: 10px 12px; border-radius: 6px; margin: 8px 0; word-wrap: break-word; line-height: 1.4; }
                 .user-message { background: var(--vscode-inputValidation-infoBackground); border-left: 3px solid var(--vscode-inputValidation-infoBorder); margin-left: 20px; }
                 .ai-message { background: var(--vscode-textBlockQuote-background); border-left: 3px solid var(--vscode-charts-blue); }
+                .system-message { background: var(--vscode-badge-background); border-left: 3px solid var(--vscode-badge-foreground); color: var(--vscode-badge-foreground); font-style: italic; text-align: center; opacity: 0.8; margin: 4px 0; }
+                .error { background: var(--vscode-inputValidation-errorBackground); border-left: 3px solid var(--vscode-inputValidation-errorBorder); color: var(--vscode-inputValidation-errorForeground); }
 
                 /* Message content formatting */
                 .message strong { font-weight: bold; color: var(--vscode-foreground); }
@@ -537,24 +747,19 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 .message code { background: var(--vscode-textCodeBlock-background); border: 1px solid var(--vscode-input-border); border-radius: 3px; padding: 2px 4px; font-family: var(--vscode-editor-font-family); font-size: 0.9em; }
                 .message pre code { background: none; border: none; padding: 0; }
 
-                /* Message content formatting */
-                .message strong { font-weight: bold; color: var(--vscode-foreground); }
-                .message ul { margin: 8px 0; padding-left: 20px; }
-                .message li { margin: 2px 0; }
-                .message pre { background: var(--vscode-textCodeBlock-background); border: 1px solid var(--vscode-input-border); border-radius: 4px; padding: 12px; margin: 8px 0; overflow-x: auto; }
-                .message code { background: var(--vscode-textCodeBlock-background); border: 1px solid var(--vscode-input-border); border-radius: 3px; padding: 2px 4px; font-family: var(--vscode-editor-font-family); font-size: 0.9em; }
-                .message pre code { background: none; border: none; padding: 0; }
                 /* Input section */
-                .input-section { flex-shrink: 0; padding: 12px; background: var(--vscode-sideBar-background); border-top: 1px solid var(--vscode-sideBar-border); }
-                .mode-controls { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+                .input-section { display: flex; flex-direction: column; height: 120px; min-height: 120px; max-height: 400px; background: var(--vscode-sideBar-background); border-top: 1px solid var(--vscode-sideBar-border); flex-shrink: 0; }
+                .resize-handle { height: 3px; background: var(--vscode-input-border, #5a5a5a); cursor: ns-resize; user-select: none; opacity: 0.5; flex-shrink: 0; }
+                .resize-handle:hover { opacity: 1; background: var(--vscode-focusBorder, #0e639c); }
+                .input-container { display: flex; flex-direction: column; gap: 8px; padding: 12px; flex-grow: 1; min-height: 0; }
+                .mode-controls { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
                 .mode-select { background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); border-radius: 3px; padding: 4px 8px; font-size: 11px; min-width: 100px; }
                 .auto-toggle { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; color: var(--vscode-foreground); user-select: none; }
                 .auto-toggle input[type="checkbox"] { margin: 0; }
-                .input-container { display: flex; gap: 8px; align-items: stretch; }
-                .textarea-container { flex: 1; position: relative; display: flex; flex-direction: column; min-width: 0; }
-                .resize-handle { height: 12px; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-bottom: none; border-radius: 3px 3px 0 0; cursor: ns-resize; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--vscode-descriptionForeground); user-select: none; opacity: 0.7; }
-                .message-input { width: 100%; padding: 8px 12px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-top: none; border-radius: 0 0 3px 3px; resize: none; min-height: 36px; max-height: 120px; font-family: inherit; font-size: inherit; box-sizing: border-box; }
-                .send-button { padding: 8px 16px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; align-self: flex-end; white-space: nowrap; flex-shrink: 0; }
+                .textarea-row { display: flex; gap: 8px; align-items: stretch; flex-grow: 1; min-height: 0; }
+                .textarea-container { flex: 1; display: flex; min-width: 0; }
+                .message-input { flex: 1; padding: 8px 12px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 3px; resize: none; font-family: inherit; font-size: inherit; box-sizing: border-box; }
+                .send-button { padding: 8px 16px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
                 .send-button:hover { background: var(--vscode-button-hoverBackground); }
 
                 /* Hidden glossary panel */
@@ -571,6 +776,7 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 <!-- Top toolbar - clean and minimal -->
                 <div class="top-toolbar">
                     <button id="indexButton" class="toolbar-button">📚 Index Codebase</button>
+                    <button id="clearChatButton" class="toolbar-button">🗑️ Clear Chat</button>
                     <span id="indexStatus" class="status-indicator">Not indexed</span>
                 </div>
 
@@ -591,35 +797,39 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 </div>
 
                 <!-- Input section with controls -->
-                <div class="input-section">
-                    <!-- Mode controls above input -->
-                    <div class="mode-controls">
-                        <select id="manifestoDropdown" class="mode-select">
-                            <option value="manifesto">🛡️ Manifesto Mode</option>
-                            <option value="free">🔓 Free Mode</option>
-                        </select>
-                        <select id="modeDropdown" class="mode-select">
-                            <option value="chat">💬 Chat</option>
-                            <option value="agent">🤖 Agent</option>
-                        </select>
-                        <select id="agentDropdown" class="mode-select">
-                            <option value="auggie">🤖 Auggie</option>
-                            <option value="amazonq">🟠 Amazon Q</option>
-                            <option value="cline">🔵 Cline</option>
-                        </select>
-                        <label class="auto-toggle">
-                            <input type="checkbox" id="autoToggle" />
-                            ⚡ Auto
-                        </label>
-                    </div>
-
+                <div class="input-section" id="inputSection">
+                    <!-- Drag handle INSIDE the input section -->
+                    <div class="resize-handle" id="resizeHandle"></div>
                     <!-- Text input area -->
                     <div class="input-container">
-                        <div class="textarea-container">
-                            <div class="resize-handle" id="resizeHandle">⋯</div>
-                            <textarea id="messageInput" class="message-input" placeholder="Ask Piggie anything..." rows="1"></textarea>
+                        <!-- Mode controls above input -->
+                        <div class="mode-controls">
+                            <select id="manifestoDropdown" class="mode-select">
+                                <option value="manifesto">🛡️ Manifesto Mode</option>
+                                <option value="free">🔓 Free Mode</option>
+                            </select>
+                            <select id="modeDropdown" class="mode-select">
+                                <option value="chat">💬 Chat</option>
+                                <option value="agent">🤖 Agent</option>
+                            </select>
+                            <select id="agentDropdown" class="mode-select">
+                                <option value="auggie">🤖 Auggie</option>
+                                <option value="amazonq">🟠 Amazon Q</option>
+                                <option value="cline">🔵 Cline</option>
+                            </select>
+                            <label class="auto-toggle">
+                                <input type="checkbox" id="autoToggle" />
+                                ⚡ Auto
+                            </label>
                         </div>
-                        <button id="sendButton" class="send-button">Send</button>
+                        <!-- Textarea and buttons row -->
+                        <div class="textarea-row">
+                            <div class="textarea-container">
+                                <textarea id="messageInput" class="message-input" placeholder="Ask Piggie anything..." rows="1"></textarea>
+                            </div>
+                            <button id="sendButton" class="send-button">Send</button>
+                            <button id="stopButton" class="send-button" style="display: none; background: var(--vscode-errorForeground);">Stop</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -631,6 +841,7 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 const sendButton = document.getElementById('sendButton');
                 const messagesDiv = document.getElementById('messages');
                 const indexButton = document.getElementById('indexButton');
+                const clearChatButton = document.getElementById('clearChatButton');
                 const indexStatus = document.getElementById('indexStatus');
                 const manifestoDropdown = document.getElementById('manifestoDropdown');
                 const modeDropdown = document.getElementById('modeDropdown');
@@ -639,10 +850,10 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 const glossaryPanel = document.getElementById('glossaryPanel');
                 const addTermButton = document.getElementById('addTermButton');
                 const closeGlossaryBtn = document.getElementById('closeGlossaryBtn');
-                const resizeHandle = document.getElementById('resizeHandle');
+                // resizeHandle moved to drag functionality section
 
                 // Event Listeners
-                sendButton.addEventListener('click', sendMessage);
+                sendButton.addEventListener('click', () => sendMessage());
                 messageInput.addEventListener('keydown', e => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -651,7 +862,22 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 });
 
                 indexButton.addEventListener('click', () => {
+                    // CRITICAL: Prevent spam clicking
+                    if (indexButton.disabled) {
+                        return;
+                    }
                     vscode.postMessage({ command: 'indexCodebase' });
+                });
+
+                clearChatButton.addEventListener('click', () => {
+                    // Clear the chat messages
+                    messagesDiv.innerHTML = '<div class="message ai-message">🐷 New session started! Hi, I\\'m Piggie! Your Security and Compliance Enforcement Agent. I piggyback on top of your AI development agents, making your code more reliable and secure. Oink Oink!</div>';
+
+                    // Clear the input
+                    messageInput.value = '';
+
+                    // Send command to backend to start new session
+                    vscode.postMessage({ command: 'newSession' });
                 });
 
                 manifestoDropdown.addEventListener('change', e => {
@@ -685,32 +911,7 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                     glossaryPanel.style.display = 'none';
                 });
 
-                // Resize handle functionality
-                let isResizing = false;
-                let startY = 0;
-                let startHeight = 0;
 
-                resizeHandle.addEventListener('mousedown', (e) => {
-                    isResizing = true;
-                    startY = e.clientY;
-                    startHeight = messageInput.offsetHeight;
-                    document.addEventListener('mousemove', handleResize);
-                    document.addEventListener('mouseup', stopResize);
-                    e.preventDefault();
-                });
-
-                function handleResize(e) {
-                    if (!isResizing) return;
-                    const deltaY = startY - e.clientY;
-                    const newHeight = Math.max(36, Math.min(120, startHeight + deltaY));
-                    messageInput.style.height = newHeight + 'px';
-                }
-
-                function stopResize() {
-                    isResizing = false;
-                    document.removeEventListener('mousemove', handleResize);
-                    document.removeEventListener('mouseup', stopResize);
-                }
 
                 function sendMessage(textOverride) {
                     const text = textOverride || messageInput.value.trim();
@@ -736,24 +937,21 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 }
 
                 function formatMessageContent(content) {
-                    // Basic markdown-like formatting for better readability
                     let formatted = content
-                        // Convert **bold** to <strong>
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        // Convert bullet points to proper list items
+                        .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
                         .replace(/^• (.*$)/gm, '<li>$1</li>')
-                        // Convert code blocks
-                        .replace(/\`\`\`(\w+)?\n([\s\S]*?)\`\`\`/g, '<pre><code class="language-$1">$2</code></pre>')
-                        // Convert inline code
-                        .replace(/\`([^\`]+)\`/g, '<code>$1</code>')
-                        // Convert line breaks to <br>
-                        .replace(/\n/g, '<br>');
+                        .replace(/\\\`\\\`\\\`(\\w+)?\\n([\\s\\S]*?)\\\`\\\`\\\`/g, '<pre><code class="language-$1">$2</code></pre>')
+                        .replace(/\\\`([^\\\`]+)\\\`/g, '<code>$1</code>')
+                        .replace(/\\n/g, '<br>');
 
-                    // Wrap consecutive list items in <ul>
-                    formatted = formatted.replace(/(<li>.*<\/li>)(<br>)*(<li>.*<\/li>)/g, '<ul>$1$3</ul>');
-                    formatted = formatted.replace(/(<li>.*<\/li>)(<br>)*(<li>.*<\/li>)(<br>)*(<li>.*<\/li>)/g, '<ul>$1$3$5</ul>');
-                    formatted = formatted.replace(/(<li>.*<\/li>)(<br>)*(<li>.*<\/li>)(<br>)*(<li>.*<\/li>)(<br>)*(<li>.*<\/li>)/g, '<ul>$1$3$5$7</ul>');
-
+                    if (formatted.includes('<li>')) {
+                        formatted = formatted.replace(/<\\/li><br><li>/g, '</li><li>');
+                        const liBlock = formatted.match(/(<li>.*<\\/li>)/s);
+                        if (liBlock) {
+                            const wrapped = '<ul>' + liBlock[0] + '</ul>';
+                            formatted = formatted.replace(liBlock[0], wrapped);
+                        }
+                    }
                     return formatted;
                 }
 
@@ -761,8 +959,17 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                     const message = event.data;
                     switch (message.command) {
                         case 'addMessage':
-                            const prefix = message.role === 'error' ? '❌ Error: ' : '🐷 Piggie: ';
-                            addMessage(message.role === 'error' ? 'error' : 'ai-message', prefix + message.content);
+                            const prefix = message.role === 'error' ? '❌ Error: ' :
+                                          message.role === 'system' ? '📋 System: ' : '🐷 Piggie: ';
+                            const className = message.role === 'error' ? 'error' :
+                                            message.role === 'system' ? 'system-message' : 'ai-message';
+                            addMessage(className, prefix + message.content);
+                            break;
+                        case 'restoreMessage':
+                            // Restore chat history messages with original formatting
+                            const rolePrefix = message.role === 'user' ? '👤 You: ' : '🐷 Piggie: ';
+                            const roleClass = message.role === 'user' ? 'user-message' : 'ai-message';
+                            addMessage(roleClass, rolePrefix + message.content);
                             break;
                         case 'syncState':
                             updateUI(message.state);
@@ -771,24 +978,50 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                             glossaryPanel.style.display = 'block';
                             document.getElementById('termInput').focus();
                             break;
+                        case 'updateIndexStatus':
+                            updateIndexStatusUI(message.isIndexed, message.fileCount);
+                            break;
+                        case 'setIndexButtonState':
+                            setIndexButtonState(message.enabled, message.text);
+                            break;
                     }
                 });
 
-                function updateUI(state) {
-                    // Update Index Status
-                    if (state.codebase.isIndexed) {
-                        indexStatus.textContent = \`Indexed (\${state.codebase.fileCount} files)\`;
+                function updateIndexStatusUI(isIndexed, fileCount) {
+                    if (isIndexed) {
+                        indexStatus.textContent = \`Indexed (\${fileCount} files)\`;
                         indexButton.textContent = "🔄 Re-index";
                     } else {
                         indexStatus.textContent = "Not Indexed";
                         indexButton.textContent = "📚 Index Codebase";
                     }
+                }
 
-                    // Update Mode Dropdowns and Toggles
-                    manifestoDropdown.value = state.core.isManifestoMode ? 'manifesto' : 'free';
-                    modeDropdown.value = state.core.isAgentMode ? 'agent' : 'chat';
-                    agentDropdown.value = state.core.currentAgent.toLowerCase();
-                    autoToggle.checked = state.core.isAutoMode;
+                /**
+                 * Set index button state - CRITICAL for preventing spam
+                 */
+                function setIndexButtonState(enabled, text) {
+                    indexButton.disabled = !enabled;
+                    indexButton.textContent = text;
+
+                    // Visual feedback for disabled state
+                    if (enabled) {
+                        indexButton.style.opacity = '1';
+                        indexButton.style.cursor = 'pointer';
+                    } else {
+                        indexButton.style.opacity = '0.6';
+                        indexButton.style.cursor = 'not-allowed';
+                    }
+                }
+
+                function updateUI(state) {
+                    if (state && state.codebase && state.core) {
+                        updateIndexStatusUI(state.codebase.isIndexed, state.codebase.fileCount);
+                        manifestoDropdown.value = state.core.isManifestoMode ? 'manifesto' : 'free';
+                        modeDropdown.value = state.core.isAgentMode ? 'agent' : 'chat';
+                        agentDropdown.value = state.core.currentAgent.toLowerCase();
+                        autoToggle.checked = state.core.isAutoMode;
+                    }
                 }
 
                 // Function to show glossary panel (called from commands)
@@ -796,6 +1029,44 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                     glossaryPanel.style.display = 'block';
                     document.getElementById('termInput').focus();
                 };
+
+                // Drag handle functionality for resizing input area
+                const resizeHandle = document.getElementById('resizeHandle');
+                const inputSection = document.getElementById('inputSection');
+
+                let isDragging = false;
+                let startY = 0;
+                let startHeight = 0;
+
+                if (resizeHandle && inputSection) {
+                    resizeHandle.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        startY = e.clientY;
+                        startHeight = inputSection.offsetHeight;
+                        document.body.style.cursor = 'ns-resize';
+                        document.body.style.userSelect = 'none';
+                        e.preventDefault();
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+
+                        // Calculate new height based on mouse movement
+                        const deltaY = startY - e.clientY;
+                        const newHeight = Math.max(120, Math.min(400, startHeight + deltaY));
+
+                        // Only update the main container's height. Flexbox handles the rest.
+                        inputSection.style.height = newHeight + 'px';
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            document.body.style.cursor = 'default';
+                            document.body.style.userSelect = '';
+                        }
+                    });
+                }
             </script>
         </body>
         </html>`;

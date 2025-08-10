@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling lint and fix requests
@@ -31,7 +32,7 @@ export class LintCommand implements IChatCommand {
     /**
      * Executes the lint command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             if (!stateManager.isCodebaseIndexed) {
                 return `⚠️ **Codebase not indexed yet!**\n\nI need to analyze your codebase first to provide linting.\n\nPlease click "📚 Index Codebase" first, then try again.`;
@@ -137,8 +138,21 @@ export class LintCommand implements IChatCommand {
         const issues: any[] = [];
         const lines = content.split('\n');
 
-        // Check for missing error handling
-        if (content.includes('function') && !content.includes('try') && !content.includes('catch')) {
+        // Define source code extensions to analyze
+        const sourceCodeExtensions = ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.cpp', '.h', '.c', '.php', '.rb', '.go', '.rs', '.swift', '.kt'];
+
+        // Guard clause: Only analyze source code files
+        const hasSourceExtension = sourceCodeExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+        if (!hasSourceExtension) {
+            return []; // Skip analysis for non-code files (e.g., .md, .json, .txt)
+        }
+
+        // Improved function detection using regex instead of simple string matching
+        const functionDeclarationRegex = /(?:export\s+)?(?:async\s+)?(?:function\s+\w+|const\s+\w+\s*=\s*(?:async\s+)?\(|class\s+\w+|method\s+\w+)/g;
+        const hasFunctions = functionDeclarationRegex.test(content);
+
+        // Check for missing error handling (only for files with actual function declarations)
+        if (hasFunctions && !content.includes('try') && !content.includes('catch')) {
             issues.push({
                 severity: 'HIGH',
                 message: 'Missing error handling',
@@ -146,8 +160,8 @@ export class LintCommand implements IChatCommand {
             });
         }
 
-        // Check for missing input validation
-        if (content.includes('function') && !content.includes('if') && !content.includes('throw')) {
+        // Check for missing input validation (only for files with actual function declarations)
+        if (hasFunctions && !content.includes('if') && !content.includes('throw')) {
             issues.push({
                 severity: 'MEDIUM',
                 message: 'Missing input validation',
@@ -155,14 +169,14 @@ export class LintCommand implements IChatCommand {
             });
         }
 
-        // Check for missing JSDoc documentation
-        const functionMatches = content.match(/(?:export\s+)?(?:async\s+)?function\s+\w+/g);
+        // Check for missing JSDoc documentation (using improved function detection)
+        const functionMatches = content.match(functionDeclarationRegex);
         const jsdocMatches = content.match(/\/\*\*[\s\S]*?\*\//g);
-        
+
         if (functionMatches && functionMatches.length > 0) {
             const functionCount = functionMatches.length;
             const jsdocCount = jsdocMatches ? jsdocMatches.length : 0;
-            
+
             if (jsdocCount < functionCount) {
                 issues.push({
                     severity: 'MEDIUM',
