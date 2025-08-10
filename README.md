@@ -4,7 +4,7 @@
 
 **VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
-[![Version](https://img.shields.io/badge/version-0.0.6--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
+[![Version](https://img.shields.io/badge/version-0.0.7--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
@@ -21,11 +21,13 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 
 ## 🚀 Key Features
 
-### **🤖 Multi-AI Support**
-- **Amazon Q Integration** - Token-optimized for enterprise limits
-- **Auggie Integration** - Full Augment Code compatibility  
-- **Cline Support** - Direct Claude integration
-- **Local AI Ready** - Support for on-premise models
+### **🤖 Multi-AI Agent Ecosystem**
+- **🟠 Amazon Q (Enterprise)** - AWS integration via Toolkit extension, high token limits, enterprise authentication
+- **🤖 Auggie (Augment Code)** - Full compatibility with Augment Code extension and services
+- **🦙 Ollama (Local & Free)** - Privacy-first local AI with streaming support, works offline
+- **🔄 Fallback Assistant** - Always-available local analysis tools when no AI is configured
+- **🔌 Auto-Discovery** - Automatically detects and configures available AI providers
+- **⚡ Seamless Switching** - Switch between providers based on your needs and preferences
 
 ### **📚 Advanced Codebase Intelligence**
 - **Smart Indexing** - Understands your entire project structure
@@ -140,6 +142,67 @@ code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
 # Glossary-enhanced responses
 "Explain API authentication" (automatically includes API definition)
 ```
+
+## 🤖 AI Agent Setup
+
+The extension automatically detects and configures available AI providers. Choose the option that best fits your needs:
+
+### **🟠 Amazon Q (Enterprise)**
+**Best for: Enterprise teams with AWS infrastructure**
+
+1. **Install AWS Toolkit**: Search for "AWS Toolkit" in VS Code extensions
+2. **Authenticate**: Sign in to your AWS account through the toolkit
+3. **Verify Region**: Ensure Amazon Q is available in your AWS region
+4. **Auto-Detection**: Extension automatically detects and configures Amazon Q
+
+```bash
+# Amazon Q provides:
+✅ High token limits (32,000+)
+✅ Enterprise authentication
+✅ Multi-language support
+✅ AWS infrastructure integration
+```
+
+### **🦙 Ollama (Local & Free)**
+**Best for: Privacy-conscious developers, offline work**
+
+1. **Install Ollama**: Download from [ollama.ai/download](https://ollama.ai/download)
+2. **Start Server**: Run `ollama serve` in your terminal
+3. **Install Model**: Run `ollama pull llama3` (or your preferred model)
+4. **Auto-Detection**: Extension automatically detects local Ollama server
+
+```bash
+# Ollama provides:
+✅ 100% local processing
+✅ Offline capability
+✅ Streaming responses
+✅ Multiple model options
+✅ Zero cost
+```
+
+### **🤖 Auggie (Augment Code)**
+**Best for: Developers already using Augment Code**
+
+1. **Install Extension**: Search for "Augment Code" in VS Code extensions
+2. **Sign In**: Authenticate with your Augment account
+3. **Auto-Detection**: Extension automatically detects and integrates with Auggie
+
+```bash
+# Auggie provides:
+✅ Advanced code understanding
+✅ File operation support
+✅ Integrated development workflow
+✅ Professional AI assistance
+```
+
+### **🔄 Fallback Mode (Always Available)**
+**Automatic fallback when no AI is configured**
+
+If no AI providers are available, the extension automatically provides:
+- 📊 Code dependency analysis
+- 🔍 Manifesto compliance checking
+- 📖 Project glossary management
+- ⚙️ Setup guidance for AI providers
 
 ## 🔧 Configuration
 
