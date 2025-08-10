@@ -10,9 +10,27 @@
 
 ## 🎯 Why Manifesto Enforcer?
 
-The Manifesto Enforcer extension solves the **enterprise AI adoption challenge** by providing Auggie-level coding intelligence through existing approved AI services like **Amazon Q (fully supported)**, while enforcing company coding standards automatically. **Piggie** is the AI agent that powers this intelligence within the extension.
+The Manifesto Enforcer extension solves **three critical development challenges**:
+
+### **🏢 Enterprise AI Adoption Challenge**
+Provides Auggie-level coding intelligence through existing approved AI services like **Amazon Q (fully supported)**, while enforcing company coding standards automatically.
+
+### **👶 New Developer Onboarding Challenge**
+Instantly generates professional-grade coding standards for developers with zero experience - no more "figure it out yourself" or inconsistent code quality.
+
+### **🎯 Team Standardization Challenge**
+Eliminates the "everyone codes differently" problem by generating and enforcing consistent, high-quality standards across your entire team.
+
+**Piggie** is the AI agent that powers this intelligence within the extension.
 
 **Amazon Q users get complete feature parity** - every Piggie capability works seamlessly with Amazon Q's enterprise-grade AI infrastructure.
+
+### **Perfect For:**
+- **🎓 New Developers**: Get professional standards instantly, learn by doing with AI guidance
+- **🏢 Enterprise Teams**: Adopt AI while maintaining compliance and security standards
+- **🚀 Startup Teams**: Establish professional practices from day one without senior developer overhead
+- **🎨 Vibe Coders**: Focus on creativity while AI handles technical best practices
+- **📚 Learning Projects**: Build real applications with enterprise-grade quality from the start
 
 ### **Perfect for Enterprise Because:**
 - ✅ **Open source** - Full transparency, can be customized for internal use
@@ -21,7 +39,41 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 - ✅ **Security focused** - Input validation, XSS prevention built-in
 - ✅ **Compliance enforced** - Automatic coding standard verification
 
+### **Perfect for New Developers Because:**
+- 🎓 **Learn by Doing** - Generate professional code with built-in best practices
+- 📚 **Instant Standards** - Get enterprise-grade coding standards without years of experience
+- 🚀 **Vibe Coding** - Focus on creativity while AI handles the technical details
+- 🛡️ **Safety Net** - Automatic error prevention and input validation
+- 📖 **Educational** - Learn proper patterns through AI-generated examples
+- 🎯 **Project-Ready** - Start any project with professional-grade setup
+
 ## 🚀 Key Features
+
+### **📜 Intelligent Manifesto Generation**
+**Perfect for: New developers, teams without coding standards, vibe coding enthusiasts**
+
+- **🚀 Zero-to-Hero Development**: Generate comprehensive coding standards from scratch
+- **🎯 Project-Specific Rules**: AI analyzes your codebase and creates tailored manifestos
+- **👶 Beginner-Friendly**: Perfect for developers with zero experience - get professional standards instantly
+- **🔄 Iterative Improvement**: Refine and evolve your manifesto as your project grows
+- **🏢 Team Standardization**: Establish consistent coding practices across your entire team
+- **⚡ Instant Setup**: Go from "no standards" to "enterprise-grade practices" in minutes
+
+```bash
+# Generate manifestos for any project type:
+"Generate a React TypeScript manifesto"
+"Create coding standards for Python data science"
+"Generate a Node.js API development manifesto"
+"Create standards for a beginner JavaScript project"
+```
+
+**Manifesto Types Available:**
+- **Frontend**: React, Vue, Angular, vanilla JavaScript
+- **Backend**: Node.js, Python, Java, C#, Go
+- **Mobile**: React Native, Flutter
+- **Data Science**: Python, R, Jupyter notebooks
+- **DevOps**: Infrastructure as Code, CI/CD
+- **Custom**: Any technology stack or project type
 
 ### **🤖 Multi-AI Agent Ecosystem**
 - **🟠 Amazon Q (Enterprise)** - **FULLY SUPPORTED** - Complete feature parity with AWS integration, high token limits, enterprise authentication
@@ -92,6 +144,59 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 2. **Build** with `npm run compile`
 3. **Package** with `npx vsce package`
 4. **Install** the generated `.vsix` file
+
+## 🚀 Manifesto Generation Quick Start
+**Perfect for: New developers, teams starting fresh, vibe coding enthusiasts**
+
+### **Generate Your First Manifesto (2 minutes)**
+
+1. **Install Extension** - Add Manifesto Enforcer to VS Code
+2. **Open Your Project** - Any project folder (even empty!)
+3. **Chat with Piggie** - Open the chat panel
+4. **Generate Manifesto** - Type one of these:
+
+```bash
+# For beginners:
+"Generate a beginner-friendly JavaScript manifesto"
+"Create coding standards for my first React project"
+
+# For specific technologies:
+"Generate a TypeScript Node.js API manifesto"
+"Create Python data science coding standards"
+"Generate a React TypeScript frontend manifesto"
+
+# For teams:
+"Create enterprise-grade coding standards for our team"
+"Generate a comprehensive full-stack manifesto"
+```
+
+5. **Review & Customize** - Piggie generates a complete manifesto tailored to your needs
+6. **Start Coding** - All future code follows your new standards automatically!
+
+### **What You Get Instantly:**
+- ✅ **Complete Coding Standards** - Error handling, validation, documentation rules
+- ✅ **Project Structure** - Best practices for organizing your code
+- ✅ **Security Guidelines** - Input validation, XSS prevention, secure patterns
+- ✅ **Performance Rules** - Optimization guidelines and anti-patterns
+- ✅ **Team Consistency** - Everyone follows the same high-quality standards
+
+### **Example Generated Manifesto Sections:**
+```markdown
+# Error Handling
+- All functions must include try-catch blocks
+- User-facing errors must be user-friendly
+- Log technical details for debugging
+
+# Input Validation
+- Validate all user inputs before processing
+- Sanitize data to prevent XSS attacks
+- Use type checking for function parameters
+
+# Documentation
+- All functions must have JSDoc comments
+- Include parameter types and return values
+- Provide usage examples for complex functions
+```
 
 ## 🎮 Quick Start
 
