@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling manifesto-related requests
@@ -35,7 +36,7 @@ export class ManifestoCommand implements IChatCommand {
     /**
      * Executes the manifesto command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             // Check for manifesto generation requests
             if (/\b(generate|create)\b.*\b(manifesto)\b/i.test(input)) {
@@ -188,22 +189,37 @@ export class ManifestoCommand implements IChatCommand {
             // Analyze indexed files for manifesto compliance opportunities
             for (const [filePath, fileData] of stateManager.codebaseIndex) {
                 const content = fileData.content;
-                
-                // Check for missing error handling
-                if (content.includes('function') && !content.includes('try') && !content.includes('catch')) {
-                    suggestions.push(`• ${filePath.split('/').pop()}: Consider adding error handling`);
-                }
-                
-                // Check for missing input validation
-                if (content.includes('function') && !content.includes('if') && !content.includes('throw')) {
-                    suggestions.push(`• ${filePath.split('/').pop()}: Consider adding input validation`);
+                const filename = filePath.split('/').pop() || filePath;
+
+                // Define source code extensions to analyze
+                const sourceCodeExtensions = ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.cpp', '.h', '.c', '.php', '.rb', '.go', '.rs', '.swift', '.kt'];
+
+                // Only analyze source code files
+                const hasSourceExtension = sourceCodeExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+                if (!hasSourceExtension) {
+                    continue; // Skip non-code files
                 }
 
-                // Check for missing documentation
-                const functionCount = (content.match(/function\s+\w+/g) || []).length;
+                // Improved function detection using regex
+                const functionDeclarationRegex = /(?:export\s+)?(?:async\s+)?(?:function\s+\w+|const\s+\w+\s*=\s*(?:async\s+)?\(|class\s+\w+|method\s+\w+)/g;
+                const hasFunctions = functionDeclarationRegex.test(content);
+
+                // Check for missing error handling (only for files with actual functions)
+                if (hasFunctions && !content.includes('try') && !content.includes('catch')) {
+                    suggestions.push(`• ${filename}: Consider adding error handling`);
+                }
+
+                // Check for missing input validation (only for files with actual functions)
+                if (hasFunctions && !content.includes('if') && !content.includes('throw')) {
+                    suggestions.push(`• ${filename}: Consider adding input validation`);
+                }
+
+                // Check for missing documentation (using improved function detection)
+                const functionMatches = content.match(functionDeclarationRegex);
+                const functionCount = functionMatches ? functionMatches.length : 0;
                 const jsdocCount = (content.match(/\/\*\*[\s\S]*?\*\//g) || []).length;
                 if (functionCount > jsdocCount) {
-                    suggestions.push(`• ${filePath.split('/').pop()}: Missing JSDoc documentation`);
+                    suggestions.push(`• ${filename}: Missing JSDoc documentation`);
                 }
             }
 

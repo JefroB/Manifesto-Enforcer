@@ -1,11 +1,13 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 import { LintCommand } from './LintCommand';
 import { EditCommand } from './EditCommand';
 import { GraphCommand } from './GraphCommand';
 import { GlossaryCommand } from './GlossaryCommand';
 import { ManifestoCommand } from './ManifestoCommand';
 import { CodeCommand } from './CodeCommand';
+import { CleanupCommand } from './CleanupCommand';
 import { GeneralHelpCommand } from './GeneralHelpCommand';
 
 /**
@@ -34,6 +36,7 @@ export class ChatCommandManager {
             new GlossaryCommand(),
             new ManifestoCommand(),
             new CodeCommand(),
+            new CleanupCommand(),
             new GeneralHelpCommand() // Always last - serves as fallback
         ];
     }
@@ -42,16 +45,17 @@ export class ChatCommandManager {
      * Handle a user message by finding the appropriate command and executing it
      * @param input - The user's input message
      * @param stateManager - The state manager instance
+     * @param agentManager - The agent manager instance
      * @returns Promise resolving to the response message
      */
-    async handleMessage(input: string, stateManager: StateManager): Promise<string> {
+    async handleMessage(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             // Find the first command that can handle this input
             // Since GeneralHelpCommand is last and always returns true, a command will always be found
             const command = this.findMatchingCommand(input);
 
             console.log(`🎯 Command matched: ${command!.constructor.name} for input: "${input.substring(0, 50)}..."`);
-            return await command!.execute(input, stateManager);
+            return await command!.execute(input, stateManager, agentManager);
 
         } catch (error) {
             console.error('ChatCommandManager error:', error);

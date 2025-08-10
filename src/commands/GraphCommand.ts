@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling code graph and analysis requests
@@ -31,7 +32,7 @@ export class GraphCommand implements IChatCommand {
     /**
      * Executes the graph command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             if (!stateManager.isCodebaseIndexed) {
                 return `⚠️ **Codebase not indexed yet!**\n\nI need to analyze your codebase first to generate code graphs.\n\nPlease click "📚 Index Codebase" first, then try again.`;

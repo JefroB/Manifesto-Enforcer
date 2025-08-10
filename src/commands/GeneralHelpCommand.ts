@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling general help and fallback requests
@@ -18,7 +19,7 @@ export class GeneralHelpCommand implements IChatCommand {
     /**
      * Executes the general help command with intelligent routing
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             // Check for test requests
             if (/\b(test|work|functionality|check)\b/i.test(input)) {
@@ -139,6 +140,7 @@ export class GeneralHelpCommand implements IChatCommand {
         response += `• **Linting:** "/lint", "Check code quality", "Fix errors in MyFile.ts"\n`;
         response += `• **Code Analysis:** "/graph", "Show references for MyClass", "Analyze impact"\n`;
         response += `• **Glossary:** "Define API as Application Programming Interface", "What does JWT mean?"\n`;
+        response += `• **Cleanup:** "/cleanup", "Clean repository", "Cleanup backups"\n`;
         response += `• **Manifesto:** "/manifesto", "Show rules", "Generate QA manifesto"\n\n`;
 
         response += `**How can I help with your development needs?**`;
