@@ -8,6 +8,10 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
+> **⚠️ ALPHA SOFTWARE WARNING**
+>
+> This extension is in **alpha development** and **not fully tested**. While it contains powerful features and has been extensively developed, it may contain bugs, incomplete functionality, or unexpected behavior. Use with caution in production environments and always backup your work. We appreciate feedback and bug reports!
+
 ## 🎯 Why Manifesto Enforcer?
 
 The Manifesto Enforcer extension solves **three critical development challenges**:
@@ -75,6 +79,43 @@ Eliminates the "everyone codes differently" problem by generating and enforcing 
 - **DevOps**: Infrastructure as Code, CI/CD
 - **Custom**: Any technology stack or project type
 
+### **🎮 Advanced Chat Commands & Slash Commands**
+**Hidden Power Features - Full command system with natural language support**
+
+- **🔍 `/lint`** - "Check code quality", "Fix errors in MyFile.ts", "Validate manifesto compliance"
+- **✏️ `/edit`** - "Modify UserService.ts", "Update the login function", "Add error handling"
+- **📊 `/graph`** - "Show references for MyClass", "Analyze dependencies", "Impact analysis"
+- **📖 `/glossary`** - "Define API as REST interface", "What does JWT mean?", "Lookup terms"
+- **📋 `/manifesto`** - "Show rules", "Generate QA manifesto", "Create security standards"
+- **💻 `/code`** - "Create UserService class", "Generate hello world", "Build React component"
+- **🧹 `/cleanup`** - "Clean repository", "Remove old backups", "Strategic file cleanup"
+
+**Natural Language Support:** All commands work with natural language - no need to remember exact syntax!
+
+### **🏗️ Comprehensive UI System**
+**Complete VSCode integration with multiple panels and views**
+
+#### **📋 Activity Bar Integration**
+- **Manifesto View** - Browse and manage coding standards
+- **Glossary View** - Project terminology and definitions
+- **Chat Panel** - Full-featured AI chat with history persistence
+- **Piggie Actions** - Quick access to common tasks
+- **Security Review** - Code security analysis tools
+- **Manifesto Rules** - Live rule display and management
+
+#### **🎯 Context Menus & Quick Actions**
+- **Right-click selected code** for instant analysis
+- **Review Selected Code** - Security and quality analysis
+- **Refactor Selected Code** - AI-powered refactoring suggestions
+- **Explain Selected Code** - Detailed code explanations
+- **Send to Amazon Q** - Direct integration with Amazon Q
+
+#### **📊 Smart Status Bar**
+- **Live Piggie Status** - Shows current AI agent and activity
+- **Progress Indicators** - Visual feedback during operations
+- **Error States** - Clear error reporting with auto-recovery
+- **Agent Switching** - Quick AI provider switching
+
 ### **🤖 Multi-AI Agent Ecosystem**
 - **🟠 Amazon Q (Enterprise)** - **FULLY SUPPORTED** - Complete feature parity with AWS integration, high token limits, enterprise authentication
 - **🤖 Auggie (Augment Code)** - **FULLY SUPPORTED** - Complete compatibility with Augment Code extension and services
@@ -83,7 +124,74 @@ Eliminates the "everyone codes differently" problem by generating and enforcing 
 - **🔌 Auto-Discovery** - Automatically detects and configures available AI providers
 - **⚡ Seamless Switching** - Switch between providers based on your needs and preferences
 
-### **📚 Advanced Codebase Intelligence**
+### **� Advanced Code Analysis & Diagnostics**
+**Real-time AST-based analysis with intelligent code actions**
+
+#### **🚨 Live Manifesto Compliance Checking**
+- **Real-time Diagnostics** - Thorough analysis as you type
+- **AST-based Analysis** - Precise, syntax-aware checking
+- **Smart Underlines** - Visual indicators for compliance issues
+
+#### **⚡ Intelligent Quick Fixes**
+- **Auto-fix Suggestions** - One-click compliance fixes
+- **Context-aware Actions** - Smart suggestions based on code context
+- **Bulk Operations** - Fix multiple issues at once
+- **Learning System** - Adapts to your coding patterns
+
+#### **📊 Code Quality Metrics**
+- **Complexity Analysis** - Identify hotspots and technical debt
+- **Dependency Mapping** - Visualize code relationships
+- **Impact Assessment** - Understand change implications
+- **Security Scanning** - Automated vulnerability detection
+
+### **🛡️ Enterprise Security Features**
+**Built-in security analysis and compliance tools**
+
+#### **🔒 Security Review System**
+- **Automated Security Scans** - Detect common vulnerabilities
+- **XSS Prevention** - innerHTML usage detection
+- **Input Validation** - Missing validation warnings
+- **SQL Injection** - Database security checks
+- **Authentication** - Access control verification
+
+#### **📋 Compliance Reporting**
+- **Manifesto Adherence** - Track compliance across codebase
+- **Security Metrics** - Vulnerability counts and trends
+- **Quality Scores** - Overall code health indicators
+- **Team Dashboards** - Project-wide compliance overview
+
+### **�️ Smart File Management & Lifecycle**
+**Intelligent file handling with AI response loop prevention**
+
+#### **📁 File Lifecycle Management**
+- **Manifesto Protection** - Triple-confirmation system for critical files
+- **Automatic Cleanup** - Removes old analysis files
+- **Backup System** - Automatic backups before destructive operations
+
+
+
+#### **💾 Persistent Chat & State Management**
+- **Chat History Persistence** - Conversations survive VSCode restarts
+- **Real-time State** - Always shows current system status
+
+### **🎛️ Advanced Configuration & Modes**
+**Flexible operation modes for different workflows**
+
+#### **🛡️ Manifesto Mode**
+- **Toggle On/Off** - Switch between enforced and free coding
+- **Real-time Compliance** - Live checking as you type
+- **Custom Rules** - Project-specific coding standards
+- **Team Synchronization** - Shared standards across team
+
+#### **🤖 Agent Management**
+- **Dynamic Switching** - Switch between AI providers as needed
+- **Automatic Fallback** - Local tools when AI unavailable
+
+#### **⚙️ Smart Defaults**
+- **Auto-discovery** - Finds and configures available AI providers
+- **Context Optimization** - Manages token limits efficiently
+
+### **��📚 Advanced Codebase Intelligence**
 - **Smart Indexing** - Understands your entire project structure
 - **Persistent Storage** - Saves index across VSCode sessions (24hr cache)
 - **Symbol Mapping** - Tracks functions, classes, interfaces across files
@@ -579,37 +687,38 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 
 ## 📊 Roadmap
 
-### **v0.0.6-alpha - CURRENT ✅**
-- [x] **Multi-AI Support** (Auggie, Amazon Q, Cline, Local)
-- [x] **Persistent Codebase Indexing** with 24hr cache
-- [x] **Chat-Based Glossary System** with natural language commands
-- [x] **Smart Manifesto Generation** from codebase analysis
-- [x] **Comprehensive QA Manifesto** for WebDriver.io, Selenium, Cypress, Playwright, etc.
-- [x] **File Change Detection** with auto re-index suggestions
-- [x] **MR/PR Analysis System** for automated code review
-- [x] **Token Optimization** for enterprise AI limits
-- [x] **Context-Aware Code Generation**
-- [x] **Glossary-Enhanced Responses** with automatic term definitions
-- [x] **Manifesto Architecture Refactoring** - Separated generic and project-specific manifestos
+### **v0.0.61-alpha - CURRENT ✅**
+- [x] **Multi-AI Support** (Amazon Q, Auggie, Ollama with full feature parity)
+- [x] **Advanced Chat Commands** (/lint, /edit, /graph, /glossary, /manifesto, /code, /cleanup)
+- [x] **Comprehensive UI System** (Activity Bar, Context Menus, Status Bar, Tree Views)
+- [x] **Real-time AST-based Diagnostics** with intelligent quick fixes
+- [x] **Smart File Lifecycle Management** with AI response loop prevention
+- [x] **Persistent Chat & State Management** with conversation history
+- [x] **Enterprise Security Features** (automated scans, compliance reporting)
+- [x] **Intelligent Manifesto Generation** for any project type or technology
+- [x] **Advanced Configuration & Modes** (manifesto mode, agent switching)
+- [x] **Critical Infrastructure** (bulletproof reliability, health monitoring)
 
-### **v0.1.0 - Enterprise Integration**
-- [ ] GitHub/GitLab API authentication for real MR analysis
-- [ ] Slack/Teams integration for MR analysis notifications
-- [ ] Custom rule engine for company-specific standards
-- [ ] Metrics dashboard for compliance tracking
-- [ ] Bulk glossary management for large teams
+### **v0.1.0-beta - Stability & Polish**
+- [ ] **Comprehensive Testing** - Full test coverage for all features
+- [ ] **Performance Optimization** - Optimize indexing and analysis speed
+- [ ] **Bug Fixes** - Address alpha-stage issues and edge cases
+- [ ] **Documentation Polish** - Complete user guides and API docs
+- [ ] **UI/UX Improvements** - Refine interface based on user feedback
 
-### **v0.2.0 - Advanced Automation**
-- [ ] JIRA integration for high-risk changes
-- [ ] CI/CD pipeline integration
-- [ ] Automated deployment gates based on risk scores
-- [ ] Performance regression detection
-- [ ] Advanced manifesto templates (security, performance, etc.)
+### **v0.2.0 - Enterprise Integration**
+- [ ] **GitHub/GitLab Integration** - Real MR/PR analysis with API authentication
+- [ ] **Team Collaboration** - Shared manifestos and glossaries
+- [ ] **Compliance Dashboards** - Team-wide compliance tracking and metrics
+- [ ] **Custom Rule Engine** - Company-specific coding standards
+- [ ] **Notification Systems** - Slack/Teams integration for code reviews
 
-### **v0.3.0 - Enterprise Scale**
-- [ ] Multi-repository analysis and cross-project intelligence
-- [ ] Team compliance dashboards with analytics
-- [ ] Custom AI model integration (Azure OpenAI, etc.)
+### **v0.3.0 - Advanced Automation**
+- [ ] **CI/CD Integration** - Automated compliance gates in pipelines
+- [ ] **Multi-Repository Analysis** - Cross-project intelligence and standards
+- [ ] **Advanced AI Models** - Azure OpenAI, Claude, custom model support
+- [ ] **Performance Monitoring** - Regression detection and optimization
+- [ ] **Enterprise Security** - Advanced vulnerability scanning and reporting
 - [ ] Enterprise SSO support
 - [ ] Advanced glossary features (synonyms, categories, etc.)
 
