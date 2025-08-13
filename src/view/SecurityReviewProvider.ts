@@ -48,7 +48,7 @@ export class SecurityReviewProvider implements vscode.TreeDataProvider<SecurityI
     }
 }
 
-class SecurityItem extends vscode.TreeItem {
+export class SecurityItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly tooltip: string,

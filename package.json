@@ -2,8 +2,8 @@
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
   "description": "🐷 [ALPHA v0.0.1] Meet Piggie! Your compliance-enforcing AI coding assistant. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.6-alpha",
-  "publisher": "manifesto-dev",
+  "version": "0.0.7-alpha",
+  "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",
     "url": "https://github.com/manifesto-dev/manifesto-code-assistant-pro.git"
@@ -27,7 +27,25 @@
     "amazon-q"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onCommand:manifestoEnforcer.toggleManifestoMode",
+    "onCommand:manifestoEnforcer.switchAgent",
+    "onCommand:manifestoEnforcer.quickChat",
+    "onCommand:manifestoEnforcer.writeCode",
+    "onCommand:manifestoEnforcer.createManifesto",
+    "onCommand:manifestoEnforcer.validateCompliance",
+    "onCommand:manifestoEnforcer.openSettings",
+    "onCommand:manifestoEnforcer.testConnection",
+    "onCommand:manifesto-enforcer.validateCommit",
+    "onCommand:manifesto-enforcer.enforceCompliance",
+    "onCommand:manifesto-enforcer.verifyAIResponse",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:python",
+    "onLanguage:java",
+    "onLanguage:csharp",
+    "workspaceContains:**/manifesto.md",
+    "workspaceContains:**/.manifesto"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -136,34 +154,28 @@
       "manifesto-enforcer": [
         {
           "id": "manifestoView",
-          "name": "📋 Manifesto",
-          "when": "workspaceFolderCount > 0"
+          "name": "📋 Manifesto"
         },
         {
           "id": "glossaryView",
-          "name": "📖 Glossary",
-          "when": "workspaceFolderCount > 0"
+          "name": "📖 Glossary"
         },
         {
           "id": "piggieChatPanel",
           "name": "💬 Chat with Piggie",
-          "type": "webview",
-          "when": "workspaceFolderCount > 0"
+          "type": "webview"
         },
         {
           "id": "piggieActions",
-          "name": "🐷 Piggie Actions",
-          "when": "workspaceFolderCount > 0"
+          "name": "🐷 Piggie Actions"
         },
         {
           "id": "manifestoRules",
-          "name": "🛡️ Manifesto Rules",
-          "when": "workspaceFolderCount > 0"
+          "name": "🛡️ Manifesto Rules"
         },
         {
           "id": "piggieSecurityReview",
-          "name": "🔒 Security Review",
-          "when": "workspaceFolderCount > 0"
+          "name": "🔒 Security Review"
         }
       ]
     },
@@ -271,6 +283,41 @@
           ],
           "description": "Default mode for Piggie: 'chat' for explanations only, 'agent' for performing actions"
         },
+        "manifestoEnforcer.manifestoMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable manifesto compliance enforcement"
+        },
+        "manifestoEnforcer.autoMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic code execution without confirmation"
+        },
+        "manifestoEnforcer.isTddMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Test-Driven Development mode for code generation"
+        },
+        "manifestoEnforcer.isUiTddMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable UI testing in TDD mode"
+        },
+        "manifestoEnforcer.techStack": {
+          "type": "string",
+          "default": "",
+          "description": "Current project tech stack (auto-detected or manually set)"
+        },
+        "manifestoEnforcer.testFramework": {
+          "type": "string",
+          "default": "",
+          "description": "Test framework for TDD mode (auto-detected or manually set)"
+        },
+        "manifestoEnforcer.uiTestFramework": {
+          "type": "string",
+          "default": "",
+          "description": "UI test framework for TDD mode (auto-detected or manually set)"
+        },
         "manifestoEnforcer.autoMode": {
           "type": "boolean",
           "default": false,
@@ -290,6 +337,24 @@
           "type": "boolean",
           "default": true,
           "description": "Show emojis in chat responses (default: true)"
+        },
+        "manifestoEnforcer.manifestoMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable manifesto mode for compliance checking"
+        },
+        "manifestoEnforcer.currentAgent": {
+          "type": "string",
+          "default": "cline",
+          "enum": [
+            "auggie",
+            "amazon-q",
+            "cline",
+            "copilot",
+            "openai",
+            "local"
+          ],
+          "description": "Currently selected AI agent for Piggie"
         }
       }
     }
@@ -297,21 +362,36 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
+    "compile:vscode-test": "tsc -p ./tsconfig.vscode-test.json",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:integration": "npm run compile:vscode-test && node ./out/test/runTest.js",
+    "test:integration:no-auggie": "npm run compile:vscode-test && cross-env SKIP_AUGGIE_TESTS=true node ./out/test/runTest.js",
+    "test:all": "npm run test && npm run test:integration:no-auggie",
+    "test:fallback": "node test-with-fallback.js",
+    "test:fallback:jest-only": "node test-with-fallback.js --jest-only",
+    "test:fallback:coverage": "node test-with-fallback.js --coverage",
+    "test:jest-safe": "node test-jest-only.js",
+    "test:jest-safe:coverage": "node test-jest-only.js --coverage"
   },
   "devDependencies": {
+    "@types/glob": "^7.2.0",
     "@types/jest": "^29.5.14",
+    "@types/mocha": "^10.0.10",
     "@types/node": "18.x",
     "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
+    "@vscode/test-electron": "^2.5.2",
+    "cross-env": "^10.0.0",
     "eslint": "^8.54.0",
+    "glob": "^11.0.3",
     "jest": "^29.5.0",
+    "mocha": "^11.7.1",
     "ts-jest": "^29.1.0"
   },
   "dependencies": {

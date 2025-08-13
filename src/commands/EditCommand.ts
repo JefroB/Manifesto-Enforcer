@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling edit and modification requests
@@ -30,19 +31,34 @@ export class EditCommand implements IChatCommand {
     /**
      * Executes the edit command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             if (!stateManager.isCodebaseIndexed) {
                 return `⚠️ **Codebase not indexed yet!**\n\nI need to analyze your codebase first for smart editing capabilities.\n\nPlease click "📚 Index Codebase" first, then try again.`;
             }
 
-            // Extract file name if mentioned
+            // **NEW AGENT LOGIC**
+            if (stateManager.isAgentMode) {
+                try {
+                    // Get conversation context for better agent understanding
+                    const conversationContext = stateManager.getConversationContext(3);
+                    const contextualMessage = conversationContext
+                        ? `Context from recent conversation:\n${conversationContext}\n\nCurrent request: ${input}`
+                        : input;
+
+                    const agentResponse = await agentManager.sendMessage(contextualMessage);
+                    return `✅ **Agent Mode Active:**\n\n${agentResponse.content}`;
+                } catch (error) {
+                    return `❌ Agent execution failed: ${error instanceof Error ? error.message : 'Unknown agent error'}`;
+                }
+            }
+
+            // Existing Chat-Mode Logic
             const fileMatch = input.match(/(\w+\.(ts|js|tsx|jsx|py|java|cs|cpp|h|md|json))/i);
             if (fileMatch) {
                 return await this.handleFileEdit(fileMatch[1], input, stateManager);
             }
 
-            // General edit guidance
             return this.provideEditGuidance(input, stateManager);
 
         } catch (error) {
@@ -69,12 +85,14 @@ export class EditCommand implements IChatCommand {
         response += `**Manifesto Rules:** ${relevantRules}\n\n`;
 
         // Show file context
-        const preview = fileData.content.slice(0, 300) + (fileData.content.length > 300 ? '...' : '');
-        response += `**Current Content Preview:**\n\`\`\`\n${preview}\n\`\`\`\n\n`;
+        if (fileData.content) {
+            const preview = fileData.content.slice(0, 300) + (fileData.content.length > 300 ? '...' : '');
+            response += `**Current Content Preview:**\n\`\`\`\n${preview}\n\`\`\`\n\n`;
+        }
 
         // Show symbols if available
         if (fileData.symbols && fileData.symbols.length > 0) {
-            response += `**Available Symbols:** ${fileData.symbols.map((s: any) => `${s.name}(${s.type})`).join(', ')}\n\n`;
+            response += `**Available Symbols:** ${fileData.symbols.map((s) => `${s.name}(${s.type})`).join(', ')}\n\n`;
         }
 
         // Provide edit suggestions based on the request
@@ -141,7 +159,7 @@ export class EditCommand implements IChatCommand {
     /**
      * Generate specific edit suggestions based on the request
      */
-    private generateEditSuggestions(input: string, fileData: any, editType: string): string {
+    private generateEditSuggestions(input: string, fileData: import('../core/types').CodebaseFile, editType: string): string {
         let suggestions = `**Edit Suggestions:**\n\n`;
 
         const lowerInput = input.toLowerCase();

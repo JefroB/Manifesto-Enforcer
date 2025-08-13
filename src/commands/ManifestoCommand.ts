@@ -1,5 +1,9 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
+import { FileLifecycleManager } from '../core/FileLifecycleManager';
+import { ChatResponseBuilder } from '../core/ChatResponseBuilder';
+import { AutoModeManager } from '../core/AutoModeManager';
 
 /**
  * Command for handling manifesto-related requests
@@ -13,9 +17,11 @@ export class ManifestoCommand implements IChatCommand {
      */
     canHandle(input: string): boolean {
         const trimmedInput = input.trim();
+        // Debug: console.log(`🔍 ManifestoCommand checking: "${trimmedInput}"`);
         
         // Handle slash commands
         if (/^\/manifesto\b/i.test(trimmedInput)) {
+            // Debug: console.log(`✅ ManifestoCommand matched: slash command`);
             return true;
         }
 
@@ -24,21 +30,41 @@ export class ManifestoCommand implements IChatCommand {
             return true;
         }
 
-        // Handle manifesto generation requests
-        if (/\b(generate|create)\b.*\b(manifesto|qa manifesto|testing manifesto|security manifesto|api manifesto|frontend manifesto)\b/i.test(input)) {
+        // Handle manifesto generation requests (very forgiving for typos)
+        const manifestoVariants = /\b(manifesto|manifsto|manfesto|manifets|manifest|manafesto|manifiest)\b/i;
+        const createWords = /\b(generate|create|make|build|write|gen)\b/i;
+
+        if (createWords.test(input) && manifestoVariants.test(input)) {
+            // Debug: console.log(`✅ ManifestoCommand matched: create + manifesto pattern`);
             return true;
         }
 
+        // Handle "create me a manifesto" type patterns
+        if (/\b(create|make|generate|gen)\b.*\b(me|a|an)\b.*\b(manifesto|manifsto|manfesto|manifest)\b/i.test(input)) {
+            // Debug: console.log(`✅ ManifestoCommand matched: "create me a" pattern`);
+            return true;
+        }
+
+        // Handle "manifesto for [project]" patterns
+        if (manifestoVariants.test(input) && /\b(for|project|app|application)\b/i.test(input)) {
+            // Debug: console.log(`✅ ManifestoCommand matched: "manifesto for" pattern`);
+            return true;
+        }
+
+        // Debug: console.log(`❌ ManifestoCommand rejected: "${trimmedInput}"`);
         return false;
     }
 
     /**
      * Executes the manifesto command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
-            // Check for manifesto generation requests
-            if (/\b(generate|create)\b.*\b(manifesto)\b/i.test(input)) {
+            // Check for manifesto generation requests (use same patterns as canHandle)
+            const manifestoVariants = /\b(manifesto|manifsto|manfesto|manifets|manifest|manafesto|manifiest)\b/i;
+            const createWords = /\b(generate|create|make|build|write|gen)\b/i;
+
+            if (createWords.test(input) && manifestoVariants.test(input)) {
                 return await this.handleManifestoGeneration(input, stateManager);
             }
 
@@ -136,14 +162,16 @@ export class ManifestoCommand implements IChatCommand {
      * Handle manifesto generation requests
      */
     private async handleManifestoGeneration(input: string, stateManager: StateManager): Promise<string> {
-        if (!stateManager.isCodebaseIndexed) {
-            return `⚠️ **Codebase not indexed yet!**\n\nI need to analyze your codebase first to generate relevant manifestos.\n\nPlease click "📚 Index Codebase" first, then try again.`;
-        }
-
         // Determine manifesto type
         const manifestoType = this.determineManifestoType(input);
-        
-        // Analyze codebase for manifesto opportunities
+
+        // Check if codebase is indexed
+        if (!stateManager.isCodebaseIndexed) {
+            // For empty projects or new projects, provide template-based generation
+            return this.generateTemplateBasedManifesto(manifestoType, input, stateManager);
+        }
+
+        // For existing projects, analyze codebase for manifesto opportunities
         const analysis = await this.analyzeManifestoOpportunities(stateManager);
 
         if (analysis.suggestions.length === 0) {
@@ -188,22 +216,39 @@ export class ManifestoCommand implements IChatCommand {
             // Analyze indexed files for manifesto compliance opportunities
             for (const [filePath, fileData] of stateManager.codebaseIndex) {
                 const content = fileData.content;
-                
-                // Check for missing error handling
-                if (content.includes('function') && !content.includes('try') && !content.includes('catch')) {
-                    suggestions.push(`• ${filePath.split('/').pop()}: Consider adding error handling`);
-                }
-                
-                // Check for missing input validation
-                if (content.includes('function') && !content.includes('if') && !content.includes('throw')) {
-                    suggestions.push(`• ${filePath.split('/').pop()}: Consider adding input validation`);
+                const filename = filePath.split('/').pop() || filePath;
+
+                // Define source code extensions to analyze
+                const sourceCodeExtensions = ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.cpp', '.h', '.c', '.php', '.rb', '.go', '.rs', '.swift', '.kt'];
+
+                // Only analyze source code files
+                const hasSourceExtension = sourceCodeExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+                if (!hasSourceExtension) {
+                    continue; // Skip non-code files
                 }
 
-                // Check for missing documentation
-                const functionCount = (content.match(/function\s+\w+/g) || []).length;
+                if (!content) continue;
+
+                // Improved function detection using regex
+                const functionDeclarationRegex = /(?:export\s+)?(?:async\s+)?(?:function\s+\w+|const\s+\w+\s*=\s*(?:async\s+)?\(|class\s+\w+|method\s+\w+)/g;
+                const hasFunctions = functionDeclarationRegex.test(content);
+
+                // Check for missing error handling (only for files with actual functions)
+                if (hasFunctions && !content.includes('try') && !content.includes('catch')) {
+                    suggestions.push(`• ${filename}: Consider adding error handling`);
+                }
+
+                // Check for missing input validation (only for files with actual functions)
+                if (hasFunctions && !content.includes('if') && !content.includes('throw')) {
+                    suggestions.push(`• ${filename}: Consider adding input validation`);
+                }
+
+                // Check for missing documentation (using improved function detection)
+                const functionMatches = content.match(functionDeclarationRegex);
+                const functionCount = functionMatches ? functionMatches.length : 0;
                 const jsdocCount = (content.match(/\/\*\*[\s\S]*?\*\//g) || []).length;
                 if (functionCount > jsdocCount) {
-                    suggestions.push(`• ${filePath.split('/').pop()}: Missing JSDoc documentation`);
+                    suggestions.push(`• ${filename}: Missing JSDoc documentation`);
                 }
             }
 
@@ -345,5 +390,213 @@ export class ManifestoCommand implements IChatCommand {
                `• Clean code practices\n` +
                `• Regular code reviews\n` +
                `• Continuous integration/deployment`;
+    }
+
+    /**
+     * Generate template-based manifesto for empty/new projects
+     */
+    private async generateTemplateBasedManifesto(manifestoType: string, input: string, stateManager: StateManager): Promise<string> {
+        try {
+            // Detect project type from input
+            const projectType = this.detectProjectType(input);
+
+            // Generate the manifesto content
+            const manifestoContent = this.generateManifestoFileContent(manifestoType, projectType);
+
+            // Check if we should auto-execute or show buttons
+            const autoModeManager = new AutoModeManager(stateManager);
+            const manifestoAction = {
+                id: 'create-manifesto',
+                label: '📋 Create manifesto.md',
+                command: 'createManifesto',
+                data: { content: manifestoContent, type: manifestoType }
+            };
+
+            if (autoModeManager.shouldAutoExecute(manifestoAction)) {
+                // Auto mode ON - execute directly like Cline
+                try {
+                    const result = await autoModeManager.executeAction(manifestoAction);
+
+                    let response = `📋 **${manifestoType} Manifesto Created!**\n\n`;
+                    response += `🚀 **Auto-execution complete!** Your manifesto is ready.\n\n`;
+
+                    if (projectType) {
+                        response += `**Detected Project Type:** ${projectType}\n\n`;
+                    }
+
+                    response += result + '\n\n';
+
+                    response += `**🎯 Next Steps:**\n`;
+                    response += `• Create your first file and I'll help you follow these standards\n`;
+                    response += `• Try: "Create a hello world script in [language]"\n`;
+                    response += `• Use \`/lint\` to check compliance as you code`;
+
+                    return response;
+                } catch (error) {
+                    // Fall back to button mode if auto-execution fails
+                    return this.generateManifestoWithButtons(manifestoType, projectType, manifestoContent, `Auto-execution failed: ${error}. Please use the button below.`);
+                }
+            } else {
+                // Auto mode OFF - show action buttons
+                return this.generateManifestoWithButtons(manifestoType, projectType, manifestoContent);
+            }
+        } catch (error) {
+            return `❌ Failed to generate manifesto: ${error instanceof Error ? error.message : String(error)}`;
+        }
+    }
+
+    /**
+     * Generate manifesto response with action buttons
+     */
+    private generateManifestoWithButtons(manifestoType: string, projectType: string | null, manifestoContent: string, extraMessage?: string): string {
+        const responseBuilder = new ChatResponseBuilder();
+
+        let content = `📋 **${manifestoType} Manifesto Template**\n\n`;
+        content += `🚀 **Perfect for new projects!** I'll create a comprehensive manifesto template for you.\n\n`;
+
+        if (projectType) {
+            content += `**Detected Project Type:** ${projectType}\n\n`;
+        }
+
+        if (extraMessage) {
+            content += `⚠️ ${extraMessage}\n\n`;
+        }
+
+        content += `**📋 Generated Manifesto Preview:**\n\n`;
+        content += `\`\`\`markdown\n${manifestoContent.substring(0, 300)}...\n\`\`\`\n\n`;
+
+        content += `**🎯 Ready to create your manifesto file!**\n`;
+        content += `Click the button below to create \`manifesto.md\` in your project root.\n\n`;
+
+        content += `**Next Steps After Creation:**\n`;
+        content += `• Create your first file and I'll help you follow these standards\n`;
+        content += `• Try: "Create a hello world script in [language]"\n`;
+        content += `• Use \`/lint\` to check compliance as you code`;
+
+        // Add action buttons
+        responseBuilder
+            .setContent(content)
+            .addManifestoCreationAction(manifestoContent, manifestoType)
+            .addAction({
+                id: 'preview-manifesto',
+                label: '👁️ Preview Full Content',
+                icon: '👁️',
+                command: 'previewManifesto',
+                data: { content: manifestoContent, type: manifestoType },
+                style: 'secondary'
+            });
+
+        // If we detected a project type, add a hello world generation button
+        if (projectType) {
+            responseBuilder.addAction({
+                id: 'create-hello-world',
+                label: `🚀 Create Hello World (${projectType})`,
+                icon: '🚀',
+                command: 'createHelloWorld',
+                data: { language: projectType.toLowerCase(), manifestoType },
+                style: 'primary'
+            });
+        }
+
+        return responseBuilder.buildAsHtml();
+    }
+
+    /**
+     * Generate the actual manifesto file content
+     */
+    private generateManifestoFileContent(manifestoType: string, projectType: string | null): string {
+        let content = `# ${manifestoType} Development Manifesto\n\n`;
+        content += `## CRITICAL INSTRUCTIONS:\n`;
+        content += `Follow EVERY principle in the manifesto above\n\n`;
+
+        // Add type-specific content
+        content += `### 1. CODE QUALITY ENFORCEMENT\n`;
+        content += this.getTemplateContent(manifestoType, 'quality') + '\n\n';
+
+        content += `### 2. ARCHITECTURE COMPLIANCE\n`;
+        content += this.getTemplateContent(manifestoType, 'architecture') + '\n\n';
+
+        content += `### 3. SECURITY REQUIREMENTS\n`;
+        content += this.getTemplateContent(manifestoType, 'security') + '\n\n';
+
+        if (projectType) {
+            content += `### 4. ${projectType.toUpperCase()} SPECIFIC STANDARDS\n`;
+            content += this.getProjectTypeSpecificRules(projectType) + '\n\n';
+        }
+
+        content += `### 5. COMPLIANCE VALIDATION\n`;
+        content += `- **MANDATORY:** All code must pass manifesto compliance checks\n`;
+        content += `- **MANDATORY:** Use \`/lint\` command to validate compliance\n`;
+        content += `- **MANDATORY:** Address all CRITICAL and ENFORCE violations before commit\n`;
+        content += `- **RECOMMENDED:** Regular code reviews with manifesto focus\n\n`;
+
+        content += `---\n`;
+        content += `*Generated by Piggie Manifesto Enforcer*\n`;
+        content += `*Customize this manifesto to fit your specific project needs*`;
+
+        return content;
+    }
+
+    /**
+     * Detect project type from user input
+     */
+    private detectProjectType(input: string): string | null {
+        const lowerInput = input.toLowerCase();
+
+        // Handle common typos and variations
+        if (/\b(react|reac|reactjs)\b/i.test(input) || lowerInput.includes('jsx')) return 'React';
+        if (/\b(vue|vuejs|vue\.js)\b/i.test(input)) return 'Vue.js';
+        if (/\b(angular|angualr|ng)\b/i.test(input)) return 'Angular';
+        if (/\b(node|nodejs|node\.js|node,js|express|expres)\b/i.test(input)) return 'Node.js';
+        if (/\b(python|py|django|flask|fastapi)\b/i.test(input)) return 'Python';
+        if (/\b(typescript|ts|typescirpt)\b/i.test(input)) return 'TypeScript';
+        if (/\b(javascript|js|ecmascript)\b/i.test(input)) return 'JavaScript';
+        if (/\b(java|spring|springboot)\b/i.test(input) && !/script/i.test(input)) return 'Java'; // Check after javascript
+        if (/\b(c#|csharp|dotnet|\.net|asp\.net)\b/i.test(input)) return 'C#';
+        if (/\b(go|golang)\b/i.test(input)) return 'Go';
+        if (/\b(rust|rustlang)\b/i.test(input)) return 'Rust';
+        if (/\b(php|laravel|symfony)\b/i.test(input)) return 'PHP';
+
+        return null;
+    }
+
+    /**
+     * Get template content for specific manifesto type and section
+     */
+    private getTemplateContent(manifestoType: string, section: string): string {
+        const templates: Record<string, Record<string, string>> = {
+            'General': {
+                'quality': '- **MANDATORY:** All code must include comprehensive error handling\n- **MANDATORY:** All public functions require JSDoc documentation\n- **MANDATORY:** All business logic must have corresponding unit tests\n- **MANDATORY:** Code coverage must be maintained above 80%',
+                'architecture': '- **ENFORCE:** SOLID principles in all class designs\n- **ENFORCE:** Dependency injection patterns where applicable\n- **ENFORCE:** Interface-based programming for services\n- **ENFORCE:** Repository pattern for data access',
+                'security': '- **CRITICAL:** Input validation on all user-facing functions\n- **CRITICAL:** No innerHTML usage (XSS prevention)\n- **CRITICAL:** Proper authentication and authorization\n- **CRITICAL:** Secure data handling and encryption'
+            },
+            'QA/Testing': {
+                'quality': '- **MANDATORY:** Unit tests for all functions (>90% coverage)\n- **MANDATORY:** Integration tests for all API endpoints\n- **MANDATORY:** E2E tests for critical user journeys\n- **MANDATORY:** Performance tests for key operations',
+                'architecture': '- **ENFORCE:** Test-driven development (TDD)\n- **ENFORCE:** Page Object Model for UI tests\n- **ENFORCE:** Mock/stub external dependencies\n- **ENFORCE:** Separate test data management',
+                'security': '- **CRITICAL:** Security testing in CI/CD pipeline\n- **CRITICAL:** Vulnerability scanning\n- **CRITICAL:** Authentication/authorization testing\n- **CRITICAL:** Data privacy compliance testing'
+            },
+            'Security': {
+                'quality': '- **MANDATORY:** Security code reviews for all changes\n- **MANDATORY:** Static security analysis (SAST)\n- **MANDATORY:** Dynamic security testing (DAST)\n- **MANDATORY:** Dependency vulnerability scanning',
+                'architecture': '- **ENFORCE:** Zero-trust architecture principles\n- **ENFORCE:** Principle of least privilege\n- **ENFORCE:** Defense in depth strategy\n- **ENFORCE:** Secure by design patterns',
+                'security': '- **CRITICAL:** OWASP Top 10 compliance\n- **CRITICAL:** Encryption at rest and in transit\n- **CRITICAL:** Secure authentication (MFA, OAuth2)\n- **CRITICAL:** Regular security audits and penetration testing'
+            }
+        };
+
+        return templates[manifestoType]?.[section] || templates['General']?.[section] || '';
+    }
+
+    /**
+     * Get project-type specific rules
+     */
+    private getProjectTypeSpecificRules(projectType: string): string {
+        const rules: Record<string, string> = {
+            'React': '- **ENFORCE:** Functional components with hooks\n- **ENFORCE:** PropTypes or TypeScript for type safety\n- **ENFORCE:** React Testing Library for component tests\n- **ENFORCE:** ESLint React rules compliance',
+            'Node.js': '- **ENFORCE:** Express.js security middleware\n- **ENFORCE:** Environment-based configuration\n- **ENFORCE:** Proper error handling middleware\n- **ENFORCE:** API rate limiting and validation',
+            'Python': '- **ENFORCE:** PEP 8 style guide compliance\n- **ENFORCE:** Type hints for all functions\n- **ENFORCE:** Virtual environment usage\n- **ENFORCE:** pytest for testing framework',
+            'TypeScript': '- **ENFORCE:** Strict TypeScript configuration\n- **ENFORCE:** Interface definitions for all data structures\n- **ENFORCE:** No any types without justification\n- **ENFORCE:** TSDoc comments for public APIs',
+            'JavaScript': '- **ENFORCE:** ES6+ modern syntax\n- **ENFORCE:** ESLint and Prettier configuration\n- **ENFORCE:** JSDoc documentation\n- **ENFORCE:** Jest testing framework'
+        };
+
+        return rules[projectType] || '- **ENFORCE:** Follow language-specific best practices\n- **ENFORCE:** Use recommended linting tools\n- **ENFORCE:** Implement proper testing strategies\n- **ENFORCE:** Maintain consistent code style';
     }
 }

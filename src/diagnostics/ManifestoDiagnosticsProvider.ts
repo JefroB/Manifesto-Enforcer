@@ -43,7 +43,7 @@ export class ManifestoDiagnosticsProvider {
         }
 
         const diagnostics: vscode.Diagnostic[] = [];
-        
+
         try {
             // Parse the source code into an AST
             const sourceFile = ts.createSourceFile(
@@ -52,10 +52,10 @@ export class ManifestoDiagnosticsProvider {
                 ts.ScriptTarget.Latest,
                 true
             );
-            
+
             // Perform AST-based analysis
             this.visitNode(sourceFile, diagnostics, document);
-            
+
         } catch (error) {
             console.error('Error analyzing document with AST:', error);
             // Fallback to clearing diagnostics if AST parsing fails
@@ -333,13 +333,20 @@ export class ManifestoDiagnosticsProvider {
         diagnostic.source = 'Manifesto Enforcer';
         diagnostic.code = 'manifesto-violation';
         
-        // Add related information
-        diagnostic.relatedInformation = [
-            new vscode.DiagnosticRelatedInformation(
-                new vscode.Location(vscode.window.activeTextEditor?.document.uri || vscode.Uri.file(''), range),
-                detail
-            )
-        ];
+        // Add related information (only if we have a valid URI)
+        try {
+            const uri = vscode.window.activeTextEditor?.document.uri || vscode.Uri.file('unknown');
+            diagnostic.relatedInformation = [
+                new vscode.DiagnosticRelatedInformation(
+                    new vscode.Location(uri, range),
+                    detail
+                )
+            ];
+        } catch (error) {
+            // MANDATORY: Comprehensive error handling
+            // Skip related information if URI creation fails (e.g., in test environment)
+            console.warn('Could not create diagnostic related information:', error);
+        }
 
         return diagnostic;
     }

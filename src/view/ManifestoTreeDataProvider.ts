@@ -271,7 +271,7 @@ export class ManifestoItem extends vscode.TreeItem {
 /**
  * Represents a manifesto section
  */
-interface ManifestoSection {
+export interface ManifestoSection {
     title: string;
     content: string;
     rules: ManifestoRule[];

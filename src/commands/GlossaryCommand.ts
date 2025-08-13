@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling glossary-related requests
@@ -35,7 +36,7 @@ export class GlossaryCommand implements IChatCommand {
     /**
      * Executes the glossary command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             const trimmedInput = input.trim();
             let response: string;
@@ -162,7 +163,7 @@ export class GlossaryCommand implements IChatCommand {
         stateManager.projectGlossary.set(normalizedTerm, {
             term: term,
             definition: definition,
-            dateAdded: new Date().toISOString(),
+            dateAdded: new Date(),
             usage: 0
         });
 
@@ -197,9 +198,11 @@ export class GlossaryCommand implements IChatCommand {
         }
 
         // Increment usage counter
-        termData.usage++;
+        termData.usage = (termData.usage || 0) + 1;
 
-        return `📖 **${termData.term}**\n\n${termData.definition}\n\n*Added: ${new Date(termData.dateAdded).toLocaleDateString()}*\n*Used: ${termData.usage} times*`;
+        const dateAdded = termData.dateAdded ? new Date(termData.dateAdded).toLocaleDateString() : 'Unknown';
+        const usage = termData.usage || 0;
+        return `📖 **${termData.term}**\n\n${termData.definition}\n\n*Added: ${dateAdded}*\n*Used: ${usage} times*`;
     }
 
     /**
@@ -214,15 +217,16 @@ export class GlossaryCommand implements IChatCommand {
 
         // Sort terms by usage (most used first)
         const sortedTerms = Array.from(stateManager.projectGlossary.entries())
-            .sort(([,a], [,b]) => b.usage - a.usage);
+            .sort(([,a], [,b]) => (b.usage || 0) - (a.usage || 0));
 
         // Show up to 10 terms to avoid overwhelming the chat
         const termsToShow = sortedTerms.slice(0, 10);
-        
+
         termsToShow.forEach(([key, termData]) => {
             response += `**${termData.term}**: ${termData.definition}\n`;
-            if (termData.usage > 0) {
-                response += `*Used ${termData.usage} times*\n`;
+            const usage = termData.usage || 0;
+            if (usage > 0) {
+                response += `*Used ${usage} times*\n`;
             }
             response += '\n';
         });
@@ -304,7 +308,7 @@ export class GlossaryCommand implements IChatCommand {
                 const term = termData.term;
                 if (enhancedContent.toLowerCase().includes(term.toLowerCase())) {
                     // Mark usage
-                    termData.usage++;
+                    termData.usage = (termData.usage || 0) + 1;
                 }
             }
 
@@ -338,7 +342,11 @@ export class GlossaryCommand implements IChatCommand {
 
         if (stateManager.projectGlossary.size > 0) {
             const recentTerms = Array.from(stateManager.projectGlossary.values())
-                .sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime())
+                .sort((a, b) => {
+                    const dateA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
+                    const dateB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
+                    return dateB - dateA;
+                })
                 .slice(0, 3)
                 .map(term => term.term);
 

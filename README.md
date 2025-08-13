@@ -4,30 +4,127 @@
 
 **VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
-[![Version](https://img.shields.io/badge/version-0.0.6--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
+[![Version](https://img.shields.io/badge/version-0.0.7--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
+> **⚠️ ALPHA SOFTWARE WARNING**
+>
+> This extension is in **alpha development** and **not fully tested**. While it contains powerful features and has been extensively developed, it may contain bugs, incomplete functionality, or unexpected behavior. Use with caution in production environments and always backup your work. We appreciate feedback and bug reports!
+
 ## 🎯 Why Manifesto Enforcer?
 
-The Manifesto Enforcer extension solves the **enterprise AI adoption challenge** by providing Auggie-level coding intelligence through existing approved AI services like Amazon Q, while enforcing company coding standards automatically. **Piggie** is the AI agent that powers this intelligence within the extension.
+**Solves three critical development challenges:**
 
-### **Perfect for Enterprise Because:**
-- ✅ **Open source** - Full transparency, can be customized for internal use
-- ✅ **Uses existing AI** - Works with Amazon Q, GitHub Copilot, etc.
-- ✅ **Token optimized** - Efficient for enterprise AI limits
-- ✅ **Security focused** - Input validation, XSS prevention built-in
-- ✅ **Compliance enforced** - Automatic coding standard verification
+1. **🏢 Enterprise AI Adoption** - Use approved AI services (Amazon Q, Auggie, Ollama) while enforcing coding standards
+2. **👶 New Developer Onboarding** - Generate professional standards instantly, no experience required
+3. **🎯 Team Standardization** - Consistent, high-quality code across your entire team
+
+**Perfect for:** New developers, enterprise teams, startups, vibe coders, and learning projects.
+
+**Piggie** is the AI agent that powers this intelligence with complete feature parity across all AI providers.
 
 ## 🚀 Key Features
 
-### **🤖 Multi-AI Support**
-- **Amazon Q Integration** - Token-optimized for enterprise limits
-- **Auggie Integration** - Full Augment Code compatibility  
-- **Cline Support** - Direct Claude integration
-- **Local AI Ready** - Support for on-premise models
+### **📜 Intelligent Manifesto Generation**
+Generate professional coding standards for any project type in minutes:
 
-### **📚 Advanced Codebase Intelligence**
+```bash
+"Generate a React TypeScript manifesto"
+"Create Python data science standards"
+"Generate Node.js API development rules"
+```
+
+**Supports:** Frontend (React, Vue, Angular), Backend (Node.js, Python, Java, C#, Go), Mobile (React Native, Flutter), Data Science, DevOps, and custom stacks.
+
+### **🎮 Advanced Chat Commands**
+Full command system with natural language support:
+
+**Commands:** `/lint` (code quality), `/edit` (modify files), `/graph` (analyze dependencies), `/glossary` (define terms), `/manifesto` (show/generate rules), `/code` (generate code), `/cleanup` (clean repository)
+
+**Natural Language:** All commands work with plain English - no syntax to memorize.
+
+### **🧪 Test-Driven Development (TDD) Workflow**
+**NEW in v0.0.7-alpha:** Complete TDD enforcement with intelligent test generation:
+
+**🎯 TDD Mode Toggle:** Enable TDD mode in Piggie's chat panel with the `🧪 TDD` toggle
+**🎭 UI Testing Support:** Optional UI test generation with the `🎭 UI Tests` toggle
+**🔄 Three-Step Process:** Failing unit test → Failing UI test (optional) → Implementation code
+**🚀 Auto-Detection:** Automatically detects tech stack and test frameworks from your project
+**📊 Test Execution:** Runs tests in VSCode terminal and captures results for verification
+
+**Supported Frameworks:**
+- **Unit Testing:** Jest, Mocha, Vitest, Jasmine
+- **UI Testing:** Playwright, Cypress, Testing Library, Selenium
+- **Tech Stacks:** React, Vue, Angular, Node.js, Python, Java, and more
+
+**Example TDD Workflow:**
+```bash
+# Enable TDD mode in chat panel
+"create a user authentication function"
+# → Generates failing unit test
+# → Generates implementation code
+# → Runs tests to verify TDD cycle
+
+# With UI Tests enabled
+"build a login component"
+# → Generates failing unit test
+# → Generates failing UI test
+# → Generates implementation code
+# → Runs all tests to verify
+```
+
+### **🏗️ Complete VSCode Integration**
+**Activity Bar:** Manifesto view, glossary, chat panel, security review, Piggie actions
+**Context Menus:** Right-click code for analysis, refactoring, explanations, AI integration
+**Status Bar:** Live agent status, progress indicators, quick AI switching
+
+### **🤖 Multi-AI Support (Full Feature Parity)**
+**Amazon Q** (Enterprise), **Auggie** (Augment Code), **Ollama** (Local/Free) - all fully supported with auto-discovery and seamless switching. Fallback tools available when no AI configured.
+
+### **� Advanced Code Analysis & Diagnostics**
+**Real-time AST-based analysis with intelligent code actions**
+
+#### **🚨 Live Manifesto Compliance Checking**
+- **Real-time Diagnostics** - Thorough analysis as you type
+- **AST-based Analysis** - Precise, syntax-aware checking
+- **Smart Underlines** - Visual indicators for compliance issues
+
+#### **⚡ Intelligent Quick Fixes**
+- **Auto-fix Suggestions** - One-click compliance fixes
+- **Context-aware Actions** - Smart suggestions based on code context
+- **Bulk Operations** - Fix multiple issues at once
+- **Learning System** - Adapts to your coding patterns
+
+#### **📊 Code Quality Metrics**
+- **Complexity Analysis** - Identify hotspots and technical debt
+- **Dependency Mapping** - Visualize code relationships
+- **Impact Assessment** - Understand change implications
+- **Security Scanning** - Automated vulnerability detection
+
+### **🛡️ Enterprise Security**
+**Security Scans:** XSS prevention, input validation, SQL injection, authentication checks
+**Compliance:** Manifesto adherence tracking, security metrics, quality scores, team dashboards
+
+### **�️ Smart File Management & Lifecycle**
+**Intelligent file handling with AI response loop prevention**
+
+#### **📁 File Lifecycle Management**
+- **Manifesto Protection** - Triple-confirmation system for critical files
+- **Automatic Cleanup** - Removes old analysis files
+- **Backup System** - Automatic backups before destructive operations
+
+
+
+#### **💾 Persistent Chat & State Management**
+- **Chat History Persistence** - Conversations survive VSCode restarts
+- **Real-time State** - Always shows current system status
+
+### **🎛️ Configuration & Modes**
+**Manifesto Mode:** Toggle enforcement, real-time compliance, custom rules, team sync
+**Agent Management:** Dynamic AI switching, automatic fallback, auto-discovery, context optimization
+
+### **��📚 Advanced Codebase Intelligence**
 - **Smart Indexing** - Understands your entire project structure
 - **Persistent Storage** - Saves index across VSCode sessions (24hr cache)
 - **Symbol Mapping** - Tracks functions, classes, interfaces across files
@@ -89,12 +186,65 @@ The Manifesto Enforcer extension solves the **enterprise AI adoption challenge**
 3. **Package** with `npx vsce package`
 4. **Install** the generated `.vsix` file
 
+## 🚀 Manifesto Generation Quick Start
+**Perfect for: New developers, teams starting fresh, vibe coding enthusiasts**
+
+### **Generate Your First Manifesto (2 minutes)**
+
+1. **Install Extension** - Add Manifesto Enforcer to VS Code
+2. **Open Your Project** - Any project folder (even empty!)
+3. **Chat with Piggie** - Open the chat panel
+4. **Generate Manifesto** - Type one of these:
+
+```bash
+# For beginners:
+"Generate a beginner-friendly JavaScript manifesto"
+"Create coding standards for my first React project"
+
+# For specific technologies:
+"Generate a TypeScript Node.js API manifesto"
+"Create Python data science coding standards"
+"Generate a React TypeScript frontend manifesto"
+
+# For teams:
+"Create enterprise-grade coding standards for our team"
+"Generate a comprehensive full-stack manifesto"
+```
+
+5. **Review & Customize** - Piggie generates a complete manifesto tailored to your needs
+6. **Start Coding** - All future code follows your new standards automatically!
+
+### **What You Get Instantly:**
+- ✅ **Complete Coding Standards** - Error handling, validation, documentation rules
+- ✅ **Project Structure** - Best practices for organizing your code
+- ✅ **Security Guidelines** - Input validation, XSS prevention, secure patterns
+- ✅ **Performance Rules** - Optimization guidelines and anti-patterns
+- ✅ **Team Consistency** - Everyone follows the same high-quality standards
+
+### **Example Generated Manifesto Sections:**
+```markdown
+# Error Handling
+- All functions must include try-catch blocks
+- User-facing errors must be user-friendly
+- Log technical details for debugging
+
+# Input Validation
+- Validate all user inputs before processing
+- Sanitize data to prevent XSS attacks
+- Use type checking for function parameters
+
+# Documentation
+- All functions must have JSDoc comments
+- Include parameter types and return values
+- Provide usage examples for complex functions
+```
+
 ## 🎮 Quick Start
 
 ### **1. Basic Setup**
 ```bash
 # Install the extension
-code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
+code --install-extension manifesto-enforcer-0.0.7-alpha.vsix
 
 # Open VSCode and look for the shield icon in the activity bar
 # Click "💬 Chat with Piggie" to start chatting with the AI agent
@@ -141,6 +291,105 @@ code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
 "Explain API authentication" (automatically includes API definition)
 ```
 
+### **🧪 TDD Mode Usage**
+```bash
+# Enable TDD mode in Piggie chat panel
+1. Click the 🧪 TDD toggle in the chat toolbar
+2. Optionally enable 🎭 UI Tests for frontend components
+
+# Generate code with TDD workflow
+"create a user validation function"
+# → Auto-generates failing unit test
+# → Generates implementation code
+# → Runs tests to verify TDD cycle
+
+# UI component with tests
+"build a search component"
+# → Generates failing unit test
+# → Generates failing UI test (if enabled)
+# → Generates React/Vue/Angular component
+# → Runs all tests to verify functionality
+
+# Supported test frameworks auto-detected:
+✅ Jest, Mocha, Vitest, Jasmine (unit tests)
+✅ Playwright, Cypress, Testing Library (UI tests)
+✅ React, Vue, Angular, Node.js, Python projects
+```
+
+## 🤖 AI Agent Setup
+
+The extension automatically detects and configures available AI providers. Choose the option that best fits your needs:
+
+### **🟠 Amazon Q (Enterprise) - FULLY SUPPORTED**
+**Best for: Enterprise teams with AWS infrastructure**
+**⭐ COMPLETE FEATURE PARITY - All Piggie features work seamlessly with Amazon Q**
+
+1. **Install AWS Toolkit**: Search for "AWS Toolkit" in VS Code extensions
+2. **Authenticate**: Sign in to your AWS account through the toolkit
+3. **Verify Region**: Ensure Amazon Q is available in your AWS region
+4. **Auto-Detection**: Extension automatically detects and configures Amazon Q
+
+```bash
+# Amazon Q provides FULL SUPPORT for:
+✅ High token limits (32,000+)
+✅ Enterprise authentication & security
+✅ Multi-language code generation
+✅ AWS infrastructure integration
+✅ Complete manifesto compliance checking
+✅ Full codebase analysis & indexing
+✅ Interactive code editing & refactoring
+✅ Comprehensive linting & quality analysis
+✅ Project glossary management
+✅ All chat commands (/lint, /edit, /graph, etc.)
+```
+
+**Amazon Q Integration Features:**
+- **Smart Context Management**: Automatically optimizes requests for Amazon Q's token limits
+- **Enterprise Security**: Leverages AWS authentication and security policies
+- **High Performance**: Optimized for Amazon Q's response patterns and capabilities
+- **Full Feature Access**: Every Piggie feature works identically with Amazon Q
+
+### **🦙 Ollama (Local & Free)**
+**Best for: Privacy-conscious developers, offline work**
+
+1. **Install Ollama**: Download from [ollama.ai/download](https://ollama.ai/download)
+2. **Start Server**: Run `ollama serve` in your terminal
+3. **Install Model**: Run `ollama pull llama3` (or your preferred model)
+4. **Auto-Detection**: Extension automatically detects local Ollama server
+
+```bash
+# Ollama provides:
+✅ 100% local processing
+✅ Offline capability
+✅ Streaming responses
+✅ Multiple model options
+✅ Zero cost
+```
+
+### **🤖 Auggie (Augment Code)**
+**Best for: Developers already using Augment Code**
+
+1. **Install Extension**: Search for "Augment Code" in VS Code extensions
+2. **Sign In**: Authenticate with your Augment account
+3. **Auto-Detection**: Extension automatically detects and integrates with Auggie
+
+```bash
+# Auggie provides:
+✅ Advanced code understanding
+✅ File operation support
+✅ Integrated development workflow
+✅ Professional AI assistance
+```
+
+### **🔄 Fallback Mode (Always Available)**
+**Automatic fallback when no AI is configured**
+
+If no AI providers are available, the extension automatically provides:
+- 📊 Code dependency analysis
+- 🔍 Manifesto compliance checking
+- 📖 Project glossary management
+- ⚙️ Setup guidance for AI providers
+
 ## 🔧 Configuration
 
 ### **Manifesto Setup**
@@ -167,13 +416,14 @@ Create `manifesto.md` in your project root:
 - Caching required for repeated operations
 ```
 
-### **Amazon Q Optimization**
-When using Amazon Q, the Manifesto Enforcer extension automatically:
-- **Compresses context** to fit token limits
-- **Prioritizes relevant files** based on your request
-- **Sends compact manifesto rules** instead of full text
-- **Manages conversation length** to prevent context overflow
-- **Includes relevant glossary terms** without exceeding limits
+### **Amazon Q Enterprise Integration**
+The Manifesto Enforcer extension provides seamless Amazon Q integration with:
+- **Intelligent Context Management** - Optimizes requests for maximum effectiveness
+- **Smart File Prioritization** - Focuses on the most relevant code for your request
+- **Efficient Manifesto Integration** - Delivers compliance rules in optimal format
+- **Conversation Optimization** - Maintains context while maximizing response quality
+- **Dynamic Glossary Integration** - Includes relevant terms for enhanced understanding
+- **Enterprise Security** - Leverages AWS authentication and compliance features
 
 ### **Glossary Management**
 **Natural Chat Commands:**
@@ -395,37 +645,38 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 
 ## 📊 Roadmap
 
-### **v0.0.6-alpha - CURRENT ✅**
-- [x] **Multi-AI Support** (Auggie, Amazon Q, Cline, Local)
-- [x] **Persistent Codebase Indexing** with 24hr cache
-- [x] **Chat-Based Glossary System** with natural language commands
-- [x] **Smart Manifesto Generation** from codebase analysis
-- [x] **Comprehensive QA Manifesto** for WebDriver.io, Selenium, Cypress, Playwright, etc.
-- [x] **File Change Detection** with auto re-index suggestions
-- [x] **MR/PR Analysis System** for automated code review
-- [x] **Token Optimization** for enterprise AI limits
-- [x] **Context-Aware Code Generation**
-- [x] **Glossary-Enhanced Responses** with automatic term definitions
-- [x] **Manifesto Architecture Refactoring** - Separated generic and project-specific manifestos
+### **v0.0.61-alpha - CURRENT ✅**
+- [x] **Multi-AI Support** (Amazon Q, Auggie, Ollama with full feature parity)
+- [x] **Advanced Chat Commands** (/lint, /edit, /graph, /glossary, /manifesto, /code, /cleanup)
+- [x] **Comprehensive UI System** (Activity Bar, Context Menus, Status Bar, Tree Views)
+- [x] **Real-time AST-based Diagnostics** with intelligent quick fixes
+- [x] **Smart File Lifecycle Management** with AI response loop prevention
+- [x] **Persistent Chat & State Management** with conversation history
+- [x] **Enterprise Security Features** (automated scans, compliance reporting)
+- [x] **Intelligent Manifesto Generation** for any project type or technology
+- [x] **Advanced Configuration & Modes** (manifesto mode, agent switching)
+- [x] **Critical Infrastructure** (bulletproof reliability, health monitoring)
 
-### **v0.1.0 - Enterprise Integration**
-- [ ] GitHub/GitLab API authentication for real MR analysis
-- [ ] Slack/Teams integration for MR analysis notifications
-- [ ] Custom rule engine for company-specific standards
-- [ ] Metrics dashboard for compliance tracking
-- [ ] Bulk glossary management for large teams
+### **v0.1.0-beta - Stability & Polish**
+- [ ] **Comprehensive Testing** - Full test coverage for all features
+- [ ] **Performance Optimization** - Optimize indexing and analysis speed
+- [ ] **Bug Fixes** - Address alpha-stage issues and edge cases
+- [ ] **Documentation Polish** - Complete user guides and API docs
+- [ ] **UI/UX Improvements** - Refine interface based on user feedback
 
-### **v0.2.0 - Advanced Automation**
-- [ ] JIRA integration for high-risk changes
-- [ ] CI/CD pipeline integration
-- [ ] Automated deployment gates based on risk scores
-- [ ] Performance regression detection
-- [ ] Advanced manifesto templates (security, performance, etc.)
+### **v0.2.0 - Enterprise Integration**
+- [ ] **GitHub/GitLab Integration** - Real MR/PR analysis with API authentication
+- [ ] **Team Collaboration** - Shared manifestos and glossaries
+- [ ] **Compliance Dashboards** - Team-wide compliance tracking and metrics
+- [ ] **Custom Rule Engine** - Company-specific coding standards
+- [ ] **Notification Systems** - Slack/Teams integration for code reviews
 
-### **v0.3.0 - Enterprise Scale**
-- [ ] Multi-repository analysis and cross-project intelligence
-- [ ] Team compliance dashboards with analytics
-- [ ] Custom AI model integration (Azure OpenAI, etc.)
+### **v0.3.0 - Advanced Automation**
+- [ ] **CI/CD Integration** - Automated compliance gates in pipelines
+- [ ] **Multi-Repository Analysis** - Cross-project intelligence and standards
+- [ ] **Advanced AI Models** - Azure OpenAI, Claude, custom model support
+- [ ] **Performance Monitoring** - Regression detection and optimization
+- [ ] **Enterprise Security** - Advanced vulnerability scanning and reporting
 - [ ] Enterprise SSO support
 - [ ] Advanced glossary features (synonyms, categories, etc.)
 
@@ -438,6 +689,41 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **Issues**: [GitHub Issues](https://github.com/JefroB/Manifesto-Enforcer/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/JefroB/Manifesto-Enforcer/discussions)
 - **Enterprise Support**: Contact for custom enterprise features
+
+## 📋 Changelog
+
+### v0.0.61-alpha (2025-08-10)
+**🏗️ Critical Infrastructure & Reliability Improvements**
+
+#### **🚨 Critical Fixes**
+- **Fixed AI Response Loops**: Prevented identical responses by excluding AI-generated analysis files from indexing
+- **Fixed Massive Over-Indexing**: Resolved issue where 6000+ files were indexed instead of expected ~50
+- **Fixed Chat History Loss**: Implemented smart chat caching that persists conversations across sessions
+- **Fixed Button Spam Issues**: Added proper race condition protection for indexing operations
+
+#### **🧠 Smart Chat System**
+- **Persistent Chat History**: Conversations now survive webview reloads and navigation
+- **Real-Time State Display**: Shows accurate current indexing state, never stale cached data
+- **Infrastructure Health Monitoring**: Automatic detection and warnings for indexing anomalies
+- **Smart Welcome Messages**: Context-aware greetings based on current system state
+
+#### **🛡️ File Management & Security**
+- **Smart File Lifecycle Management**: Different strategies for manifestos, glossaries, and analysis files
+- **AI Response Loop Prevention**: Excludes problematic files while preserving valuable AI-generated content
+- **Manifesto Protection**: Triple-confirmation system with typed verification for manifesto deletion
+- **Automatic Cleanup**: Strategic cleanup of old analysis files and legacy backups
+
+#### **📊 Enhanced Reliability**
+- **Race Condition Protection**: Prevents overlapping indexing operations
+- **Comprehensive Error Handling**: Robust error recovery throughout the system
+- **Performance Monitoring**: Tracks and validates system health metrics
+- **Gitignore Integration**: Respects project exclusion patterns for accurate indexing
+
+#### **🎯 User Experience**
+- **Button State Management**: Visual feedback during long operations
+- **Health Status Indicators**: Proactive warnings for system issues
+- **Consistent File Counts**: Reliable indexing with expected file counts (~50 files)
+- **Improved Diagnostics**: Detailed logging for troubleshooting
 
 ---
 

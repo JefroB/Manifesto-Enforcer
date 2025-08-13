@@ -52,7 +52,7 @@ export class PiggieActionsProvider implements vscode.TreeDataProvider<ActionItem
     }
 }
 
-class ActionItem extends vscode.TreeItem {
+export class ActionItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly tooltip: string,

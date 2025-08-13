@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { StateManager } from '../core/StateManager';
+import { GlossaryTerm } from '../core/types';
 
 /**
  * Tree data provider for the Glossary sidebar view
@@ -77,38 +78,90 @@ export class GlossaryTreeDataProvider implements vscode.TreeDataProvider<Glossar
     /**
      * Add a new term to the glossary
      */
-    async addTerm(term: string, definition: string): Promise<void> {
-        const glossaryTerm: GlossaryTerm = {
-            term,
-            definition,
-            dateAdded: Date.now(),
-            usage: 0
-        };
+    async addTerm(term: string, definition: string): Promise<boolean> {
+        try {
+            // Validate input
+            if (!term || !definition || term.trim() === '' || definition.trim() === '') {
+                return false;
+            }
 
-        this.stateManager.projectGlossary.set(term.toUpperCase(), glossaryTerm);
-        await this.saveGlossary();
-        this.refresh();
+            const glossaryTerm: GlossaryTerm = {
+                term,
+                definition,
+                dateAdded: new Date(),
+                usage: 0
+            };
+
+            const upperTerm = term.toUpperCase();
+            this.stateManager.projectGlossary.set(upperTerm, glossaryTerm);
+
+            try {
+                await this.saveGlossary();
+                this.refresh();
+                return true;
+            } catch (saveError) {
+                // Rollback on save failure
+                this.stateManager.projectGlossary.delete(upperTerm);
+                console.error('Error saving term:', saveError);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error adding term:', error);
+            return false;
+        }
     }
 
     /**
      * Remove a term from the glossary
      */
-    async removeTerm(term: string): Promise<void> {
-        this.stateManager.projectGlossary.delete(term.toUpperCase());
-        await this.saveGlossary();
-        this.refresh();
+    async removeTerm(term: string): Promise<boolean> {
+        try {
+            // Validate input
+            if (!term || term.trim() === '') {
+                return false;
+            }
+
+            const upperTerm = term.toUpperCase();
+            const existed = this.stateManager.projectGlossary.has(upperTerm);
+
+            if (!existed) {
+                return false;
+            }
+
+            this.stateManager.projectGlossary.delete(upperTerm);
+            await this.saveGlossary();
+            this.refresh();
+            return true;
+        } catch (error) {
+            console.error('Error removing term:', error);
+            return false;
+        }
     }
 
     /**
      * Update term usage
      */
-    async incrementUsage(term: string): Promise<void> {
-        const upperTerm = term.toUpperCase();
-        const glossaryTerm = this.stateManager.projectGlossary.get(upperTerm);
-        if (glossaryTerm) {
-            glossaryTerm.usage++;
+    async incrementUsage(term: string): Promise<boolean> {
+        try {
+            // Validate input
+            if (!term || term.trim() === '') {
+                return false;
+            }
+
+            const upperTerm = term.toUpperCase();
+            const glossaryTerm = this.stateManager.projectGlossary.get(upperTerm);
+
+            if (!glossaryTerm) {
+                return false;
+            }
+
+            glossaryTerm.usage = (glossaryTerm.usage || 0) + 1;
             await this.saveGlossary();
             this.refresh();
+            return true;
+        } catch (error) {
+            console.error('Error incrementing usage:', error);
+            return false;
         }
     }
 
@@ -133,6 +186,7 @@ export class GlossaryTreeDataProvider implements vscode.TreeDataProvider<Glossar
             });
         } catch (error) {
             console.error('Failed to save glossary:', error);
+            throw error; // Re-throw so callers can handle it
         }
     }
 
@@ -172,7 +226,7 @@ export class GlossaryTreeDataProvider implements vscode.TreeDataProvider<Glossar
      */
     exportToJSON(): string {
         const exportData: any = {};
-        for (const [key, value] of this.stateManager.projectGlossary) {
+        for (const [, value] of this.stateManager.projectGlossary) {
             exportData[value.term] = value.definition;
         }
         return JSON.stringify(exportData, null, 2);
@@ -237,12 +291,4 @@ export class GlossaryItem extends vscode.TreeItem {
     }
 }
 
-/**
- * Represents a glossary term
- */
-export interface GlossaryTerm {
-    term: string;
-    definition: string;
-    dateAdded: number;
-    usage: number;
-}
+

@@ -34,19 +34,21 @@ export class AgentManager {
 
       // REQUIRED: Validate agent connection
       const isValid = await adapter.validateConnection();
-      if (!isValid) {
-        throw new Error('Agent validation failed: unable to establish connection');
-      }
 
-      // Register the agent
+      // Register the agent even if disconnected - graceful degradation
       this.agents.set(config.id, adapter);
+
+      if (!isValid) {
+        console.warn(`Agent registered but disconnected: ${config.name} (${config.id})`);
+        // Don't throw - allow registration with disconnected state
+      } else {
+        console.log(`Agent registered and connected: ${config.name} (${config.id})`);
+      }
 
       // Set as active if it's the first agent
       if (this.agents.size === 1) {
         this.activeAgentId = config.id;
       }
-
-      console.log(`Agent registered successfully: ${config.name} (${config.id})`);
 
     } catch (error) {
       // MANDATORY: Comprehensive error handling
@@ -57,7 +59,7 @@ export class AgentManager {
 
   /**
    * Send message to active agent with manifesto compliance
-   * OPTIMIZE: Monitor performance and ensure sub-200ms when possible
+   * Takes as long as needed for thorough analysis
    */
   async sendMessage(message: string, manifestoApplied: boolean = false): Promise<ChatMessage> {
     const startTime = Date.now();
@@ -82,13 +84,9 @@ export class AgentManager {
       response.manifestoApplied = manifestoApplied;
       response.agentId = this.activeAgentId;
 
-      // OPTIMIZE: Record performance metrics (manifesto requirement)
+      // Record performance metrics for monitoring
       const duration = Date.now() - startTime;
       this.recordPerformanceMetric('sendMessage', duration);
-
-      if (duration > 200) {
-        console.warn(`Message processing took ${duration}ms - exceeds 200ms performance target`);
-      }
 
       return response;
 
