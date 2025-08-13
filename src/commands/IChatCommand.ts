@@ -1,4 +1,5 @@
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Interface for all chat commands in the Command Pattern
@@ -21,7 +22,8 @@ export interface IChatCommand {
      * Executes the command with the given input and state manager
      * @param input - The user's input message
      * @param stateManager - The state manager instance for accessing codebase data
+     * @param agentManager - The agent manager instance for agent operations
      * @returns Promise resolving to the response message
      */
-    execute(input: string, stateManager: StateManager): Promise<string>;
+    execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string>;
 }

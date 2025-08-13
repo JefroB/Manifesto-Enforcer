@@ -5,13 +5,14 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { 
-  FileOperation, 
-  FileOperationResult, 
-  ProjectStructure, 
+import {
+  FileOperation,
+  FileOperationResult,
+  ProjectStructure,
   CodeQualityResult,
-  PerformanceMetrics 
+  PerformanceMetrics
 } from '../core/types';
+import { StateManager } from '../core/StateManager';
 
 /**
  * File manager for Piggie to write code directly to files
@@ -246,24 +247,31 @@ export class PiggieFileManager {
   }
 
   /**
-   * Create backup of existing file
+   * Create backup of existing file using StateManager's Piggie directory
    * HANDLE: All operations must have comprehensive error handling
    */
   private async createBackup(filePath: string): Promise<string> {
     try {
       // Check if file exists
       await fs.access(filePath);
-      
+
       // Read existing content
       const existingContent = await fs.readFile(filePath, 'utf8');
-      
-      // Create backup with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupPath = `${filePath}.backup.${timestamp}`;
-      
-      await fs.writeFile(backupPath, existingContent, 'utf8');
-      
-      return backupPath;
+
+      // Use StateManager's backup functionality (goes to .piggie directory)
+      const stateManager = StateManager.getInstance();
+      const backupPath = await stateManager.createBackup(filePath, existingContent);
+
+      if (backupPath) {
+        return backupPath;
+      } else {
+        // Fallback to old method if StateManager backup fails
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fallbackBackupPath = `${filePath}.backup.${timestamp}`;
+        await fs.writeFile(fallbackBackupPath, existingContent, 'utf8');
+        console.warn('Used fallback backup method - consider cleaning up manually');
+        return fallbackBackupPath;
+      }
 
     } catch (error) {
       // If file doesn't exist, no backup needed

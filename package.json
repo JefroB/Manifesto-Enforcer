@@ -2,7 +2,7 @@
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
   "description": "🐷 [ALPHA v0.0.1] Meet Piggie! Your compliance-enforcing AI coding assistant. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.6-alpha",
+  "version": "0.0.61-alpha",
   "publisher": "manifesto-dev",
   "repository": {
     "type": "git",

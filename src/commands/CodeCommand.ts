@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling code generation and creation requests
@@ -23,7 +24,7 @@ export class CodeCommand implements IChatCommand {
     /**
      * Executes the code command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             // Check for specific code patterns
             if (/hello world/i.test(input)) {

@@ -11,4 +11,5 @@ export { GraphCommand } from './GraphCommand';
 export { GlossaryCommand } from './GlossaryCommand';
 export { ManifestoCommand } from './ManifestoCommand';
 export { CodeCommand } from './CodeCommand';
+export { CleanupCommand } from './CleanupCommand';
 export { GeneralHelpCommand } from './GeneralHelpCommand';

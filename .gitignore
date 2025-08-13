@@ -56,3 +56,23 @@ Desktop.ini
 
 # Project-specific manifesto (contains project secrets/specifics)
 manifesto-enforcer-project.md
+
+# Piggie extension files
+.piggie/
+
+# CRITICAL: Prevent AI response loops - exclude ONLY problematic AI-generated files
+# These cause response loops when indexed:
+security-analysis-*.md
+code-review-*.md
+analysis-report-*.md
+diagnostic-*.md
+temp-analysis-*.md
+ai-response-*.md
+context-*.txt
+project_context.txt
+
+# NOTE: We DO want to commit these AI-generated files:
+# - glossary.json (project glossary)
+# - manifesto-*.md (generated manifestos)
+# - generated source code files
+# - documentation updates

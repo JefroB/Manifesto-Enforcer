@@ -1,5 +1,6 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
+import { AgentManager } from '../agents/AgentManager';
 
 /**
  * Command for handling edit and modification requests
@@ -30,19 +31,34 @@ export class EditCommand implements IChatCommand {
     /**
      * Executes the edit command
      */
-    async execute(input: string, stateManager: StateManager): Promise<string> {
+    async execute(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             if (!stateManager.isCodebaseIndexed) {
                 return `⚠️ **Codebase not indexed yet!**\n\nI need to analyze your codebase first for smart editing capabilities.\n\nPlease click "📚 Index Codebase" first, then try again.`;
             }
 
-            // Extract file name if mentioned
+            // **NEW AGENT LOGIC**
+            if (stateManager.isAgentMode) {
+                try {
+                    // Get conversation context for better agent understanding
+                    const conversationContext = stateManager.getConversationContext(3);
+                    const contextualMessage = conversationContext
+                        ? `Context from recent conversation:\n${conversationContext}\n\nCurrent request: ${input}`
+                        : input;
+
+                    const agentResponse = await agentManager.sendMessage(contextualMessage);
+                    return `✅ **Agent Mode Active:**\n\n${agentResponse.content}`;
+                } catch (error) {
+                    return `❌ Agent execution failed: ${error instanceof Error ? error.message : 'Unknown agent error'}`;
+                }
+            }
+
+            // Existing Chat-Mode Logic
             const fileMatch = input.match(/(\w+\.(ts|js|tsx|jsx|py|java|cs|cpp|h|md|json))/i);
             if (fileMatch) {
                 return await this.handleFileEdit(fileMatch[1], input, stateManager);
             }
 
-            // General edit guidance
             return this.provideEditGuidance(input, stateManager);
 
         } catch (error) {
