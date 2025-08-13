@@ -2,6 +2,9 @@
 out/
 *.vsix
 
+# VSCode test files (large binaries)
+.vscode-test/
+
 # Node modules
 node_modules/
 
