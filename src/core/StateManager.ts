@@ -5,10 +5,21 @@
 
 import * as vscode from 'vscode';
 import { CodeGraph } from '../indexing/CodeGraph';
-import { ChatMessage } from './types';
+import {
+    ChatMessage,
+    ManifestoRule,
+    CodebaseFile,
+    ProjectStructure,
+    ManifestoIndex,
+    CacheEntry,
+    GitConfig,
+    GlossaryTerm,
+    StateSummary
+} from './types';
 import { PiggieDirectoryManager } from './PiggieDirectoryManager';
 import { GitignoreParser } from './GitignoreParser';
 import { FileLifecycleManager, FileLifecycleOptions, FileLifecycleResult } from './FileLifecycleManager';
+import { ManifestoEngine } from './ManifestoEngine';
 
 /**
  * Singleton StateManager class that centralizes all extension state
@@ -19,26 +30,33 @@ export class StateManager {
     private context: vscode.ExtensionContext;
 
     // Core State Variables
-    private _manifestoRules: any[] = [];
+    private _manifestoRules: ManifestoRule[] = [];
     private _isManifestoMode: boolean = true;
     private _currentAgent: string = 'Auggie';
     private _currentModel: string = 'Claude Sonnet 4';
     private _isAgentMode: boolean = false; // false = chat only (safer default)
     private _isAutoMode: boolean = false; // false = requires confirmation (safer default)
+    private _isTddMode: boolean = false; // false = regular code generation (safer default)
+    private _isUiTddMode: boolean = false; // false = no UI tests (safer default)
     private _fontSize: string = 'medium'; // small, medium, large
     private _showEmojis: boolean = true;
 
+    // TDD State Variables
+    private _techStack: string = '';
+    private _testFramework: string = '';
+    private _uiTestFramework: string = ''; // UI test framework (Playwright, Cypress, etc.)
+
     // Codebase Intelligence State
-    private _codebaseIndex: Map<string, any> = new Map();
+    private _codebaseIndex: Map<string, CodebaseFile> = new Map();
     private _isCodebaseIndexed: boolean = false;
-    private _projectStructure: any = null;
-    private _manifestoIndex: any = null;
+    private _projectStructure: ProjectStructure | null = null;
+    private _manifestoIndex: ManifestoIndex | null = null;
     private _codebaseIndexTimestamp: number = 0;
     private _codeGraph: CodeGraph = new CodeGraph();
 
     // CRITICAL: Race condition protection
     private _isIndexingInProgress: boolean = false;
-    private _indexingPromise: Promise<any> | null = null;
+    private _indexingPromise: Promise<{ success: boolean; message: string; processedFiles?: number }> | null = null;
 
     // MANDATORY: Reference file counting for validation
     private _expectedFileCount: number = 0;
@@ -47,14 +65,14 @@ export class StateManager {
     // Provider instances removed - StateManager should only manage data, not service instances
 
     // Amazon Q Optimization State
-    private _qContextWindow: any[] = [];
+    private _qContextWindow: ChatMessage[] = [];
     private _qTokenCount: number = 0;
     private _qMaxTokens: number = 4000; // Conservative limit for Q
     private _qContextPriority: Map<string, number> = new Map();
 
     // MR/PR Integration State
-    private _mrCache: Map<string, any> = new Map();
-    private _gitConfig: any = null;
+    private _mrCache: Map<string, CacheEntry> = new Map();
+    private _gitConfig: GitConfig | null = null;
 
     // Conversation Context State
     private _conversationHistory: ChatMessage[] = [];
@@ -66,8 +84,12 @@ export class StateManager {
     private fileLifecycleManager?: FileLifecycleManager;
 
     // Glossary System State
-    private _projectGlossary: Map<string, any> = new Map();
+    private _projectGlossary: Map<string, GlossaryTerm> = new Map();
     private _isGlossaryIndexed: boolean = false;
+
+    // CRITICAL: Enforcement Engine State
+    private _manifestoEngine: ManifestoEngine | null = null;
+    private _diagnosticsProvider: any = null; // Will be set by extension.ts
 
     /**
      * Get singleton instance of StateManager
@@ -175,6 +197,15 @@ export class StateManager {
             // Load auto mode setting
             this._isAutoMode = config.get<boolean>('autoMode', false);
 
+            // Load TDD mode setting
+            this._isTddMode = config.get<boolean>('isTddMode', false);
+            this._isUiTddMode = config.get<boolean>('isUiTddMode', false);
+
+            // Load TDD configuration
+            this._techStack = config.get<string>('techStack', '');
+            this._testFramework = config.get<string>('testFramework', '');
+            this._uiTestFramework = config.get<string>('uiTestFramework', '');
+
             // Load formatting settings
             this._fontSize = config.get<string>('fontSize', 'medium');
             this._showEmojis = config.get<boolean>('showEmojis', true);
@@ -205,6 +236,11 @@ export class StateManager {
             await config.update('manifestoMode', this._isManifestoMode, vscode.ConfigurationTarget.Global);
             await config.update('defaultMode', this._isAgentMode ? 'agent' : 'chat', vscode.ConfigurationTarget.Global);
             await config.update('autoMode', this._isAutoMode, vscode.ConfigurationTarget.Global);
+            await config.update('isTddMode', this._isTddMode, vscode.ConfigurationTarget.Global);
+            await config.update('isUiTddMode', this._isUiTddMode, vscode.ConfigurationTarget.Global);
+            await config.update('techStack', this._techStack, vscode.ConfigurationTarget.Global);
+            await config.update('testFramework', this._testFramework, vscode.ConfigurationTarget.Global);
+            await config.update('uiTestFramework', this._uiTestFramework, vscode.ConfigurationTarget.Global);
             await config.update('fontSize', this._fontSize, vscode.ConfigurationTarget.Global);
             await config.update('showEmojis', this._showEmojis, vscode.ConfigurationTarget.Global);
             await config.update('currentAgent', this._currentAgent, vscode.ConfigurationTarget.Global);
@@ -220,8 +256,8 @@ export class StateManager {
     // Getter and Setter methods for all state properties
 
     // Core State Properties
-    public get manifestoRules(): any[] { return this._manifestoRules; }
-    public set manifestoRules(value: any[]) { this._manifestoRules = value; }
+    public get manifestoRules(): ManifestoRule[] { return this._manifestoRules; }
+    public set manifestoRules(value: ManifestoRule[]) { this._manifestoRules = value; }
 
     public get isManifestoMode(): boolean { return this._isManifestoMode; }
     public set isManifestoMode(value: boolean) { 
@@ -245,8 +281,38 @@ export class StateManager {
     }
 
     public get isAutoMode(): boolean { return this._isAutoMode; }
-    public set isAutoMode(value: boolean) { 
+    public set isAutoMode(value: boolean) {
         this._isAutoMode = value;
+        this.saveSettings().catch(console.error);
+    }
+
+    public get isTddMode(): boolean { return this._isTddMode; }
+    public set isTddMode(value: boolean) {
+        this._isTddMode = value;
+        this.saveSettings().catch(console.error);
+    }
+
+    public get isUiTddMode(): boolean { return this._isUiTddMode; }
+    public set isUiTddMode(value: boolean) {
+        this._isUiTddMode = value;
+        this.saveSettings().catch(console.error);
+    }
+
+    public get techStack(): string { return this._techStack; }
+    public setTechStack(value: string): void {
+        this._techStack = value;
+        this.saveSettings().catch(console.error);
+    }
+
+    public get testFramework(): string { return this._testFramework; }
+    public setTestFramework(value: string): void {
+        this._testFramework = value;
+        this.saveSettings().catch(console.error);
+    }
+
+    public get uiTestFramework(): string { return this._uiTestFramework; }
+    public setUiTestFramework(value: string): void {
+        this._uiTestFramework = value;
         this.saveSettings().catch(console.error);
     }
 
@@ -263,17 +329,24 @@ export class StateManager {
     }
 
     // Codebase Intelligence Properties
-    public get codebaseIndex(): Map<string, any> { return this._codebaseIndex; }
-    public set codebaseIndex(value: Map<string, any>) { this._codebaseIndex = value; }
+    public get codebaseIndex(): Map<string, CodebaseFile> { return this._codebaseIndex; }
+    public set codebaseIndex(value: Map<string, CodebaseFile>) { this._codebaseIndex = value; }
 
     public get isCodebaseIndexed(): boolean { return this._isCodebaseIndexed; }
     public set isCodebaseIndexed(value: boolean) { this._isCodebaseIndexed = value; }
 
-    public get projectStructure(): any { return this._projectStructure; }
-    public set projectStructure(value: any) { this._projectStructure = value; }
+    public get projectStructure(): ProjectStructure | null { return this._projectStructure; }
+    public set projectStructure(value: ProjectStructure | null) { this._projectStructure = value; }
 
-    public get manifestoIndex(): any { return this._manifestoIndex; }
-    public set manifestoIndex(value: any) { this._manifestoIndex = value; }
+    public get manifestoIndex(): ManifestoIndex | null { return this._manifestoIndex; }
+    public set manifestoIndex(value: ManifestoIndex | null) { this._manifestoIndex = value; }
+
+    // CRITICAL: Enforcement Engine Accessors
+    public get manifestoEngine(): ManifestoEngine | null { return this._manifestoEngine; }
+    public set manifestoEngine(value: ManifestoEngine | null) { this._manifestoEngine = value; }
+
+    public get diagnosticsProvider(): any { return this._diagnosticsProvider; }
+    public set diagnosticsProvider(value: any) { this._diagnosticsProvider = value; }
 
     public get codebaseIndexTimestamp(): number { return this._codebaseIndexTimestamp; }
     public set codebaseIndexTimestamp(value: number) { this._codebaseIndexTimestamp = value; }
@@ -284,8 +357,8 @@ export class StateManager {
     // Provider Properties removed - StateManager should only manage data, not service instances
 
     // Amazon Q Optimization Properties
-    public get qContextWindow(): any[] { return this._qContextWindow; }
-    public set qContextWindow(value: any[]) { this._qContextWindow = value; }
+    public get qContextWindow(): ChatMessage[] { return this._qContextWindow; }
+    public set qContextWindow(value: ChatMessage[]) { this._qContextWindow = value; }
 
     public get qTokenCount(): number { return this._qTokenCount; }
     public set qTokenCount(value: number) { this._qTokenCount = value; }
@@ -297,15 +370,15 @@ export class StateManager {
     public set qContextPriority(value: Map<string, number>) { this._qContextPriority = value; }
 
     // MR/PR Integration Properties
-    public get mrCache(): Map<string, any> { return this._mrCache; }
-    public set mrCache(value: Map<string, any>) { this._mrCache = value; }
+    public get mrCache(): Map<string, CacheEntry> { return this._mrCache; }
+    public set mrCache(value: Map<string, CacheEntry>) { this._mrCache = value; }
 
-    public get gitConfig(): any { return this._gitConfig; }
-    public set gitConfig(value: any) { this._gitConfig = value; }
+    public get gitConfig(): GitConfig | null { return this._gitConfig; }
+    public set gitConfig(value: GitConfig | null) { this._gitConfig = value; }
 
     // Glossary System Properties
-    public get projectGlossary(): Map<string, any> { return this._projectGlossary; }
-    public set projectGlossary(value: Map<string, any>) { this._projectGlossary = value; }
+    public get projectGlossary(): Map<string, GlossaryTerm> { return this._projectGlossary; }
+    public set projectGlossary(value: Map<string, GlossaryTerm>) { this._projectGlossary = value; }
 
     public get isGlossaryIndexed(): boolean { return this._isGlossaryIndexed; }
     public set isGlossaryIndexed(value: boolean) { this._isGlossaryIndexed = value; }
@@ -367,33 +440,15 @@ export class StateManager {
      * Get state summary for debugging
      * DOCUMENT: All configuration options with examples (manifesto requirement)
      */
-    public getStateSummary(): any {
+    public getStateSummary(): StateSummary {
         return {
-            core: {
-                isManifestoMode: this._isManifestoMode,
-                currentAgent: this._currentAgent,
-                isAgentMode: this._isAgentMode,
-                isAutoMode: this._isAutoMode,
-                fontSize: this._fontSize,
-                showEmojis: this._showEmojis
-            },
-            codebase: {
-                isIndexed: this._isCodebaseIndexed,
-                fileCount: this._codebaseIndex.size,
-                indexTimestamp: this._codebaseIndexTimestamp
-            },
-            glossary: {
-                isIndexed: this._isGlossaryIndexed,
-                termCount: this._projectGlossary.size
-            },
-            amazonQ: {
-                tokenCount: this._qTokenCount,
-                maxTokens: this._qMaxTokens,
-                contextItems: this._qContextWindow.length
-            },
-            cache: {
-                mrCacheSize: this._mrCache.size
-            }
+            manifestoMode: this._isManifestoMode,
+            currentAgent: this._currentAgent,
+            manifestoRulesCount: this._manifestoRules.length,
+            codebaseFilesCount: this._codebaseIndex.size,
+            glossaryTermsCount: this._projectGlossary.size,
+            lastActivity: new Date(),
+            memoryUsage: process.memoryUsage().heapUsed
         };
     }
 
@@ -653,8 +708,7 @@ export class StateManager {
                         path: file.fsPath,
                         content: text,
                         size: text.length,
-                        lastModified: Date.now(),
-                        indexed: true
+                        lastModified: new Date()
                     });
 
                     processedFiles++;

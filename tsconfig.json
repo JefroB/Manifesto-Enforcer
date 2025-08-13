@@ -8,6 +8,18 @@
 		],
 		"sourceMap": true,
 		"rootDir": "src",
-		"strict": true
-	}
+		"strict": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true
+	},
+	"exclude": [
+		"node_modules",
+		".vscode-test",
+		"**/__tests__/**",
+		"**/*.test.ts",
+		"src/test/suite/**",
+		"src/test/runTest.ts"
+	]
 }

@@ -63,6 +63,10 @@ export class LintCommand implements IChatCommand {
             return `❌ File "${filename}" not found in indexed codebase.`;
         }
 
+        if (!fileData.content) {
+            return `❌ File "${filename}" has no content to analyze.`;
+        }
+
         const issues = this.analyzeFileForIssues(fileData.content, filename);
         
         if (issues.length === 0) {
@@ -92,6 +96,8 @@ export class LintCommand implements IChatCommand {
         const filesToAnalyze = Array.from(stateManager.codebaseIndex.values()).slice(0, 10);
 
         for (const fileData of filesToAnalyze) {
+            if (!fileData.content) continue;
+
             const issues = this.analyzeFileForIssues(fileData.content, fileData.path);
             if (issues.length > 0) {
                 allIssues.push({

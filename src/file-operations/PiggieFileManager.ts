@@ -3,6 +3,7 @@
  * Following manifesto: MANDATORY error handling, CRITICAL security, OPTIMIZE performance
  */
 
+import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import {
@@ -170,6 +171,52 @@ export class PiggieFileManager {
   }
 
   /**
+   * Check if a file exists
+   * MANDATORY: Error handling for file system operations
+   */
+  async fileExists(filePath: string): Promise<boolean> {
+    try {
+      // CRITICAL: Input validation
+      if (!filePath || typeof filePath !== 'string') {
+        throw new Error('Invalid file path provided');
+      }
+
+      // CRITICAL: Security - prevent path traversal
+      this.validateFilePath(filePath);
+
+      const fullPath = this.getWorkspacePath(filePath);
+      await fs.access(fullPath);
+      return true;
+    } catch (error) {
+      // File doesn't exist or access denied
+      return false;
+    }
+  }
+
+  /**
+   * Read file content
+   * MANDATORY: Error handling and input validation
+   */
+  async readFile(filePath: string): Promise<string> {
+    try {
+      // CRITICAL: Input validation
+      if (!filePath || typeof filePath !== 'string') {
+        throw new Error('Invalid file path provided');
+      }
+
+      // CRITICAL: Security - prevent path traversal
+      this.validateFilePath(filePath);
+
+      const fullPath = this.getWorkspacePath(filePath);
+      const content = await fs.readFile(fullPath, 'utf8');
+      return content;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown file read error';
+      throw new Error(`Failed to read file ${filePath}: ${errorMessage}`);
+    }
+  }
+
+  /**
    * Dispose resources
    * MANDATORY: Proper resource disposal
    */
@@ -184,6 +231,15 @@ export class PiggieFileManager {
   }
 
   // Private helper methods
+
+  /**
+   * Get full workspace path for a relative file path
+   * CRITICAL: Security - prevent path traversal
+   */
+  private getWorkspacePath(filePath: string): string {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    return path.join(workspaceRoot, filePath);
+  }
 
   /**
    * Validate file operation input
@@ -218,8 +274,11 @@ export class PiggieFileManager {
       throw new Error('Invalid file path: path traversal detected');
     }
 
-    // Check for absolute paths to system directories
-    const dangerousPaths = ['/etc', '/usr', '/bin', '/sys', '/proc', 'C:\\Windows', 'C:\\System32'];
+    // Check for absolute paths to system directories (platform-aware)
+    const dangerousPaths = process.platform === 'win32'
+      ? ['/etc', '/usr', '/bin', '/sys', '/proc', 'C:\\Windows', 'C:\\System32', 'C:\\Program Files']
+      : ['/etc', '/usr', '/bin', '/sys', '/proc', '/System', '/Library', '/Applications', '/private'];
+
     if (dangerousPaths.some(dangerous => filePath.startsWith(dangerous))) {
       throw new Error('Invalid file path: access to system directories denied');
     }

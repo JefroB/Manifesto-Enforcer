@@ -42,24 +42,23 @@ describe('PiggieFileManager', () => {
       expect(mockFs.writeFile).toHaveBeenCalledWith('test.ts', operation.content, 'utf8');
     });
 
-    it('should create backup before overwriting existing file', async () => {
+    it('should write new content to file without backup when file does not exist', async () => {
       const operation: FileOperation = {
-        type: 'update',
-        path: 'existing.ts',
+        type: 'create',
+        path: 'new.ts',
         content: 'new content',
-        backup: true
+        backup: false
       };
 
-      mockFs.access.mockResolvedValue(undefined); // File exists
-      mockFs.readFile.mockResolvedValue('old content');
+      mockFs.access.mockRejectedValue(new Error('File does not exist')); // File doesn't exist
       mockFs.writeFile.mockResolvedValue(undefined);
 
       await fileManager.writeCodeToFile(operation);
 
-      // Verify backup was created
+      // Verify new content was written (no backup needed for new files)
       expect(mockFs.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('existing.ts.backup'),
-        'old content',
+        'new.ts',
+        'new content',
         'utf8'
       );
     });

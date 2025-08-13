@@ -370,8 +370,8 @@ export class FileLifecycleManager {
             const existingGlossary = JSON.parse(existingContent);
             const newGlossary = JSON.parse(newContent);
 
-            // Merge glossaries (new entries override existing ones)
-            const mergedGlossary = { ...existingGlossary, ...newGlossary };
+            // Merge glossaries intelligently (deep merge for nested objects)
+            const mergedGlossary = this.deepMerge(existingGlossary, newGlossary);
             const mergedContent = JSON.stringify(mergedGlossary, null, 2);
 
             await this.writeFile(filePath, mergedContent);
@@ -385,6 +385,25 @@ export class FileLifecycleManager {
         } catch (error) {
             throw new Error(`JSON glossary merge failed: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    /**
+     * Deep merge two objects recursively
+     */
+    private deepMerge(target: any, source: any): any {
+        const result = { ...target };
+
+        for (const key in source) {
+            if (source.hasOwnProperty(key)) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = this.deepMerge(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+        }
+
+        return result;
     }
 
     // MANDATORY: File system utilities with comprehensive error handling

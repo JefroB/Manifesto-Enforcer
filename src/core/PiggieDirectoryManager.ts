@@ -10,9 +10,10 @@ import { promises as fs } from 'fs';
 export class PiggieDirectoryManager {
     private static readonly PIGGIE_DIR_NAME = '.piggie';
     private static readonly GITIGNORE_ENTRY = '\n# Piggie extension files\n.piggie/\n';
-    
+
     private workspaceRoot: string;
     private piggieDir: string;
+    private backupCounter: number = 0;
 
     constructor(workspaceRoot: string) {
         // MANDATORY: Input validation
@@ -77,7 +78,8 @@ export class PiggieDirectoryManager {
 
             const filename = path.basename(originalPath);
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const backupFilename = `${filename}.backup.${timestamp}`;
+            const counter = ++this.backupCounter;
+            const backupFilename = `${filename}.backup.${timestamp}.${counter}`;
             const backupPath = this.getPiggiePath(backupFilename);
 
             await fs.writeFile(backupPath, content, 'utf8');
@@ -128,8 +130,16 @@ export class PiggieDirectoryManager {
             }
             
         } catch (error) {
+            // For cleanup operations, log but don't throw - cleanup failures shouldn't break the app
             console.warn('Failed to cleanup old backups:', error);
-            // Don't throw - cleanup is not critical
+            // Only throw if it's a critical error like directory access failure or permission issues
+            if (error instanceof Error && (
+                error.message.includes('ENOENT') ||
+                error.message.includes('Permission denied') ||
+                error.message.includes('EACCES')
+            )) {
+                throw new Error(`Failed to cleanup old backups: ${error.message}`);
+            }
         }
     }
 
@@ -150,26 +160,29 @@ export class PiggieDirectoryManager {
      * Ensure .piggie is in .gitignore
      */
     private async ensureGitignoreEntry(): Promise<void> {
+        const gitignorePath = path.join(this.workspaceRoot, '.gitignore');
+
+        let gitignoreContent = '';
         try {
-            const gitignorePath = path.join(this.workspaceRoot, '.gitignore');
-            
-            let gitignoreContent = '';
-            try {
-                gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
-            } catch {
-                // .gitignore doesn't exist, will create it
+            gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+        } catch (readError) {
+            // .gitignore doesn't exist, will create it
+            // Only ignore ENOENT errors, re-throw others (like permission errors)
+            if (readError instanceof Error && !readError.message.includes('ENOENT')) {
+                throw readError;
             }
-            
-            // Check if .piggie is already in .gitignore
-            if (!gitignoreContent.includes('.piggie/')) {
-                gitignoreContent += PiggieDirectoryManager.GITIGNORE_ENTRY;
+        }
+
+        // Check if .piggie is already in .gitignore
+        if (!gitignoreContent.includes('.piggie/')) {
+            gitignoreContent += PiggieDirectoryManager.GITIGNORE_ENTRY;
+            try {
                 await fs.writeFile(gitignorePath, gitignoreContent, 'utf8');
                 console.log('📝 Added .piggie/ to .gitignore');
+            } catch (writeError) {
+                // Re-throw write errors as they indicate serious issues
+                throw writeError;
             }
-            
-        } catch (error) {
-            console.warn('Failed to update .gitignore:', error);
-            // Don't throw - gitignore update is not critical
         }
     }
 }

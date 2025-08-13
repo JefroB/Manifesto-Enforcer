@@ -85,12 +85,14 @@ export class EditCommand implements IChatCommand {
         response += `**Manifesto Rules:** ${relevantRules}\n\n`;
 
         // Show file context
-        const preview = fileData.content.slice(0, 300) + (fileData.content.length > 300 ? '...' : '');
-        response += `**Current Content Preview:**\n\`\`\`\n${preview}\n\`\`\`\n\n`;
+        if (fileData.content) {
+            const preview = fileData.content.slice(0, 300) + (fileData.content.length > 300 ? '...' : '');
+            response += `**Current Content Preview:**\n\`\`\`\n${preview}\n\`\`\`\n\n`;
+        }
 
         // Show symbols if available
         if (fileData.symbols && fileData.symbols.length > 0) {
-            response += `**Available Symbols:** ${fileData.symbols.map((s: any) => `${s.name}(${s.type})`).join(', ')}\n\n`;
+            response += `**Available Symbols:** ${fileData.symbols.map((s) => `${s.name}(${s.type})`).join(', ')}\n\n`;
         }
 
         // Provide edit suggestions based on the request
@@ -157,7 +159,7 @@ export class EditCommand implements IChatCommand {
     /**
      * Generate specific edit suggestions based on the request
      */
-    private generateEditSuggestions(input: string, fileData: any, editType: string): string {
+    private generateEditSuggestions(input: string, fileData: import('../core/types').CodebaseFile, editType: string): string {
         let suggestions = `**Edit Suggestions:**\n\n`;
 
         const lowerInput = input.toLowerCase();

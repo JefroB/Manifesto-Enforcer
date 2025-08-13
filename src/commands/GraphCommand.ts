@@ -137,6 +137,8 @@ export class GraphCommand implements IChatCommand {
         const references: Array<{file: string, line: number, context: string}> = [];
 
         for (const [filePath, fileData] of stateManager.codebaseIndex) {
+            if (!fileData.content) continue;
+
             const lines = fileData.content.split('\n');
             lines.forEach((line: string, index: number) => {
                 if (line.includes(symbolName) && !line.trim().startsWith('//')) {
@@ -177,6 +179,8 @@ export class GraphCommand implements IChatCommand {
         const baseFilename = filename.replace(/\.(ts|js|tsx|jsx)$/, '');
 
         for (const [filePath, fileData] of stateManager.codebaseIndex) {
+            if (!fileData.content) continue;
+
             const lines = fileData.content.split('\n');
             lines.forEach((line: string) => {
                 if (line.includes('import') &&
@@ -284,6 +288,8 @@ export class GraphCommand implements IChatCommand {
 
         for (const [, fileData] of stateManager.codebaseIndex) {
             const content = fileData.content;
+            if (!content) continue;
+
             totalFunctions += (content.match(/function\s+\w+/g) || []).length;
             totalClasses += (content.match(/class\s+\w+/g) || []).length;
             totalInterfaces += (content.match(/interface\s+\w+/g) || []).length;
@@ -304,6 +310,8 @@ export class GraphCommand implements IChatCommand {
         const dependencies: Array<{file: string, imports: string[]}> = [];
 
         for (const [filePath, fileData] of stateManager.codebaseIndex) {
+            if (!fileData.content) continue;
+
             const imports = fileData.content
                 .split('\n')
                 .filter((line: string) => line.trim().startsWith('import'))
@@ -328,7 +336,8 @@ export class GraphCommand implements IChatCommand {
 
         for (const [filePath, fileData] of stateManager.codebaseIndex) {
             const content = fileData.content;
-            
+            if (!content) continue;
+
             // Simple complexity calculation based on various factors
             let complexity = 0;
             complexity += (content.match(/if\s*\(/g) || []).length * 1;

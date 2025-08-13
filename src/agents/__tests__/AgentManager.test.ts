@@ -75,12 +75,17 @@ describe('AgentManager', () => {
       expect(registeredAgents[0].id).toBe('test-agent');
     });
 
-    it('should validate agent before registration', async () => {
+    it('should register agent even when validation fails (graceful fallback)', async () => {
       const invalidConfig = { ...mockConfig, isEnabled: false };
       const adapter = new MockAgentAdapter(invalidConfig);
 
-      await expect(agentManager.registerAgent(adapter))
-        .rejects.toThrow('Agent validation failed: unable to establish connection');
+      // Should not throw - graceful fallback allows registration of disconnected agents
+      await expect(agentManager.registerAgent(adapter)).resolves.not.toThrow();
+
+      // Agent should be registered but marked as disconnected
+      const registeredAgents = agentManager.getAvailableAgents();
+      expect(registeredAgents).toHaveLength(1);
+      expect(registeredAgents[0].id).toBe('test-agent');
     });
 
     it('should handle registration errors gracefully', async () => {
@@ -126,12 +131,14 @@ describe('AgentManager', () => {
     });
 
     it('should complete message processing', async () => {
-      const startTime = Date.now();
+      const result = await agentManager.sendMessage('Performance test');
 
-      await agentManager.sendMessage('Performance test');
-
-      const duration = Date.now() - startTime;
-      expect(duration).toBeGreaterThan(0); // Should take some time for thorough processing
+      // Verify the message was processed successfully
+      expect(result).toBeDefined();
+      // Result should be a ChatMessage object with required properties
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('role');
+      expect(result).toHaveProperty('content');
     });
   });
 

@@ -10,8 +10,57 @@ import { ManifestoRulesProvider } from './view/ManifestoRulesProvider';
 import { ManifestoCodeActionProvider } from './diagnostics/ManifestoCodeActionProvider';
 import { ChatCommandManager } from './commands';
 import { AgentManager } from './agents/AgentManager';
+import { AutoModeManager } from './core/AutoModeManager';
 import { AuggieAdapter } from './agents/adapters/AuggieAdapter';
-import { AgentConfig, AgentProvider } from './core/types';
+import { LocalAgent } from './agents/adapters/LocalAgent';
+import { AmazonQAdapter } from './agents/adapters/AmazonQAdapter';
+import { ClineAdapter } from './agents/adapters/ClineAdapter';
+import { OllamaAdapter } from './agents/adapters/OllamaAdapter';
+import { AgentConfig, AgentProvider, RuleSeverity, RuleCategory } from './core/types';
+import { ManifestoEngine } from './core/ManifestoEngine';
+
+/**
+ * Index manifesto rules for efficient token usage
+ */
+function indexManifesto(stateManager: StateManager): void {
+    try {
+        // Basic manifesto rules - can be expanded
+        const manifestoRules = [
+            {
+                id: 'error-handling',
+                text: 'Comprehensive Error Handling',
+                description: 'All functions must include try-catch blocks with specific error handling',
+                severity: RuleSeverity.CRITICAL,
+                category: RuleCategory.ERROR_HANDLING,
+                pattern: /try\s*{[\s\S]*?}\s*catch\s*\([^)]*\)\s*{[\s\S]*?}/g,
+                examples: ['try { ... } catch (error) { ... }']
+            },
+            {
+                id: 'input-validation',
+                text: 'Input Validation',
+                description: 'All user inputs must be validated before processing',
+                severity: RuleSeverity.CRITICAL,
+                category: RuleCategory.SECURITY,
+                pattern: /function\s+\w+\s*\([^)]*\)\s*{(?![\s\S]*if\s*\(.*\))/g,
+                examples: ['if (!input || typeof input !== "string") throw new Error("Invalid input");']
+            },
+            {
+                id: 'jsdoc-required',
+                text: 'JSDoc Documentation',
+                description: 'All public functions must have JSDoc comments',
+                severity: RuleSeverity.REQUIRED,
+                category: RuleCategory.DOCUMENTATION,
+                pattern: /(?:export\s+)?(?:async\s+)?function\s+\w+/g,
+                examples: ['/** * Function description * @param {type} param - description */']
+            }
+        ];
+
+        stateManager.manifestoRules = manifestoRules;
+        console.log(`📋 Indexed ${manifestoRules.length} manifesto rules`);
+    } catch (error) {
+        console.error('Failed to index manifesto:', error);
+    }
+}
 
 /**
  * Extension activation
@@ -20,32 +69,88 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('🐷 Piggie extension is now active!');
 
     try {
+        // CRITICAL: Add detailed logging to debug activation issues
+        console.log('🔍 Starting extension activation...');
+        console.log('📁 Extension path:', context.extensionPath);
+        console.log('🔧 VSCode version:', vscode.version);
+
         // Initialize StateManager singleton first
+        console.log('🏗️ Initializing StateManager...');
         const stateManager = StateManager.getInstance(context);
+        console.log('✅ StateManager initialized successfully');
+
+        // CRITICAL: Initialize ManifestoEngine for enforcement
+        console.log('🏗️ Initializing ManifestoEngine...');
+        const manifestoEngine = new ManifestoEngine();
+        stateManager.manifestoEngine = manifestoEngine;
+        console.log('✅ ManifestoEngine initialized successfully');
 
         // Index manifesto for token efficiency
+        console.log('📚 Indexing manifesto...');
         indexManifesto(stateManager);
+        console.log('✅ Manifesto indexed successfully');
 
         // Initialize providers as local constants (StateManager should only manage data, not service instances)
+        console.log('🏗️ Creating providers...');
         const diffProvider = new InteractiveDiffProvider(context, stateManager);
+        console.log('✅ InteractiveDiffProvider created');
         const manifestoTreeProvider = new ManifestoTreeDataProvider(stateManager);
+        console.log('✅ ManifestoTreeDataProvider created');
         const glossaryTreeProvider = new GlossaryTreeDataProvider(context, stateManager);
+        console.log('✅ GlossaryTreeDataProvider created');
         const piggieActionsProvider = new PiggieActionsProvider();
+        console.log('✅ PiggieActionsProvider created');
         const securityReviewProvider = new SecurityReviewProvider();
+        console.log('✅ SecurityReviewProvider created');
         const manifestoRulesProvider = new ManifestoRulesProvider(stateManager);
+        console.log('✅ ManifestoRulesProvider created');
         const diagnosticsProvider = new ManifestoDiagnosticsProvider(stateManager);
+        console.log('✅ ManifestoDiagnosticsProvider created');
         const codeActionProvider = new ManifestoCodeActionProvider(stateManager);
+
+        // CRITICAL: Set diagnostics provider in StateManager for enforcement commands
+        stateManager.diagnosticsProvider = diagnosticsProvider;
 
         // Providers are now managed locally in activate function scope
 
-        // Register tree data providers
-        context.subscriptions.push(
-            vscode.window.registerTreeDataProvider('manifestoView', manifestoTreeProvider),
-            vscode.window.registerTreeDataProvider('glossaryView', glossaryTreeProvider),
-            vscode.window.registerTreeDataProvider('piggieActions', piggieActionsProvider),
-            vscode.window.registerTreeDataProvider('piggieSecurityReview', securityReviewProvider),
-            vscode.window.registerTreeDataProvider('manifestoRules', manifestoRulesProvider)
-        );
+        // Register tree data providers with error handling
+        try {
+            context.subscriptions.push(
+                vscode.window.registerTreeDataProvider('manifestoView', manifestoTreeProvider),
+                vscode.window.registerTreeDataProvider('glossaryView', glossaryTreeProvider),
+                vscode.window.registerTreeDataProvider('piggieActions', piggieActionsProvider),
+                vscode.window.registerTreeDataProvider('piggieSecurityReview', securityReviewProvider),
+                vscode.window.registerTreeDataProvider('manifestoRules', manifestoRulesProvider)
+            );
+            console.log('✅ All tree data providers registered successfully');
+        } catch (error) {
+            console.error('❌ Failed to register tree data providers:', error);
+            // Try to register them individually to see which one fails
+            try {
+                context.subscriptions.push(vscode.window.registerTreeDataProvider('manifestoView', manifestoTreeProvider));
+                console.log('✅ manifestoView registered');
+            } catch (e) { console.error('❌ manifestoView failed:', e); }
+
+            try {
+                context.subscriptions.push(vscode.window.registerTreeDataProvider('glossaryView', glossaryTreeProvider));
+                console.log('✅ glossaryView registered');
+            } catch (e) { console.error('❌ glossaryView failed:', e); }
+
+            try {
+                context.subscriptions.push(vscode.window.registerTreeDataProvider('piggieActions', piggieActionsProvider));
+                console.log('✅ piggieActions registered');
+            } catch (e) { console.error('❌ piggieActions failed:', e); }
+
+            try {
+                context.subscriptions.push(vscode.window.registerTreeDataProvider('piggieSecurityReview', securityReviewProvider));
+                console.log('✅ piggieSecurityReview registered');
+            } catch (e) { console.error('❌ piggieSecurityReview failed:', e); }
+
+            try {
+                context.subscriptions.push(vscode.window.registerTreeDataProvider('manifestoRules', manifestoRulesProvider));
+                console.log('✅ manifestoRules registered');
+            } catch (e) { console.error('❌ manifestoRules failed:', e); }
+        }
 
         // Register diagnostic and code action providers
         context.subscriptions.push(
@@ -65,11 +170,60 @@ export function activate(context: vscode.ExtensionContext) {
             dispose: () => diagnosticsProvider.dispose()
         });
 
+        // CRITICAL: Register document save enforcement
+        context.subscriptions.push(
+            vscode.workspace.onWillSaveTextDocument(async (event) => {
+                try {
+                    // MANDATORY: Enforce manifesto compliance on save
+                    const document = event.document;
+
+                    // Skip non-source files
+                    if (!document.fileName.match(/\.(ts|js|tsx|jsx|py|java|cpp|c|cs|go|rs|php)$/)) {
+                        return;
+                    }
+
+                    const manifestoEngine = stateManager.manifestoEngine;
+                    if (!manifestoEngine) {
+                        return;
+                    }
+
+                    // REQUIRED: Validate document content
+                    const text = document.getText();
+                    const violations = await manifestoEngine.validateCode(text, document.fileName);
+
+                    if (violations.length > 0) {
+                        // CRITICAL: Show violations but don't block save (allow user to fix)
+                        vscode.window.showWarningMessage(
+                            `⚠️ Manifesto violations detected in ${document.fileName}: ${violations.length} issues found`
+                        );
+
+                        // Update diagnostics to show violations
+                        const diagnostics = stateManager.diagnosticsProvider;
+                        if (diagnostics) {
+                            diagnostics.updateDiagnostics();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Document save enforcement failed:', error);
+                }
+            })
+        );
+
         // Register chat provider with context for persistence
         const provider = new PiggieChatProvider(context.extensionUri, context, stateManager);
-        context.subscriptions.push(
-            vscode.window.registerWebviewViewProvider('piggieChatPanel', provider)
-        );
+        try {
+            context.subscriptions.push(
+                vscode.window.registerWebviewViewProvider('piggieChatPanel', provider)
+            );
+        } catch (error) {
+            console.warn('⚠️ Chat provider registration failed (may already be registered):', error);
+            // Continue activation even if chat provider fails
+        }
+
+        // Add provider to subscriptions for proper disposal
+        context.subscriptions.push({
+            dispose: () => provider.dispose()
+        });
 
         // Register all commands
         context.subscriptions.push(
@@ -79,25 +233,35 @@ export function activate(context: vscode.ExtensionContext) {
             }),
 
             vscode.commands.registerCommand('manifestoEnforcer.switchAgent', async () => {
-                const agents = ['Auggie', 'Amazon Q', 'Cline'];
-                const selected = await vscode.window.showQuickPick(agents, {
-                    placeHolder: 'Select AI Agent for Piggie'
-                });
-                if (selected) {
-                    stateManager.currentAgent = selected;
-                    vscode.window.showInformationMessage(`🐷 Piggie is now using: ${selected}`);
+                try {
+                    const agents = ['Auggie', 'Amazon Q', 'Cline'];
+                    const selected = await vscode.window.showQuickPick(agents, {
+                        placeHolder: 'Select AI Agent for Piggie'
+                    });
+                    if (selected) {
+                        stateManager.currentAgent = selected;
+                        vscode.window.showInformationMessage(`🐷 Piggie is now using: ${selected}`);
+                    }
+                } catch (error) {
+                    console.error('Error in switchAgent command:', error);
+                    vscode.window.showErrorMessage('Failed to switch agent');
                 }
             }),
 
             vscode.commands.registerCommand('manifestoEnforcer.quickChat', async () => {
-                const input = await vscode.window.showInputBox({
-                    placeHolder: 'Ask Piggie anything...',
-                    prompt: 'Quick chat with Piggie'
-                });
-                if (input) {
-                    vscode.commands.executeCommand('piggieChatPanel.focus');
-                    // Send message to chat panel
-                    provider.handleQuickMessage(input);
+                try {
+                    const input = await vscode.window.showInputBox({
+                        placeHolder: 'Ask Piggie anything...',
+                        prompt: 'Quick chat with Piggie'
+                    });
+                    if (input) {
+                        vscode.commands.executeCommand('piggieChatPanel.focus');
+                        // Send message to chat panel
+                        provider.handleQuickMessage(input);
+                    }
+                } catch (error) {
+                    console.error('Error in quickChat command:', error);
+                    vscode.window.showErrorMessage('Failed to process quick chat');
                 }
             }),
 
@@ -134,7 +298,7 @@ export function activate(context: vscode.ExtensionContext) {
                 });
                 if (input) {
                     vscode.commands.executeCommand('piggieChatPanel.focus');
-                    provider.handleQuickMessage(`Create a manifesto for: ${input}`);
+                    provider.handleQuickMessage(`Generate manifesto for ${input} project`);
                 }
             }),
 
@@ -231,6 +395,103 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage('📖 Glossary refreshed');
             }),
 
+            // CRITICAL: TDD Enforcement Commands
+            vscode.commands.registerCommand('manifesto-enforcer.validateCommit', async () => {
+                try {
+                    // MANDATORY: Validate commit against manifesto rules
+                    const manifestoEngine = stateManager.manifestoEngine;
+                    if (!manifestoEngine) {
+                        vscode.window.showErrorMessage('Manifesto engine not initialized');
+                        return false;
+                    }
+
+                    // REQUIRED: Run tests before allowing commit
+                    const testResult = await vscode.commands.executeCommand('manifestoEnforcer.runTests');
+                    if (!testResult) {
+                        vscode.window.showErrorMessage('❌ Commit blocked: Tests are failing');
+                        return false;
+                    }
+
+                    // CRITICAL: Check for manifesto violations
+                    const violations = await manifestoEngine.validateWorkspace();
+                    if (violations.length > 0) {
+                        vscode.window.showErrorMessage(`❌ Commit blocked: ${violations.length} manifesto violations found`);
+                        return false;
+                    }
+
+                    vscode.window.showInformationMessage('✅ Commit validation passed');
+                    return true;
+                } catch (error) {
+                    console.error('Commit validation failed:', error);
+                    vscode.window.showErrorMessage('❌ Commit validation failed');
+                    return false;
+                }
+            }),
+
+            vscode.commands.registerCommand('manifesto-enforcer.enforceCompliance', async () => {
+                try {
+                    // MANDATORY: Enforce manifesto compliance
+                    const manifestoEngine = stateManager.manifestoEngine;
+                    if (!manifestoEngine) {
+                        vscode.window.showErrorMessage('Manifesto engine not initialized');
+                        return false;
+                    }
+
+                    const violations = await manifestoEngine.validateWorkspace();
+                    if (violations.length > 0) {
+                        vscode.window.showWarningMessage(`⚠️ Found ${violations.length} manifesto violations`);
+                        // Show violations in problems panel
+                        const diagnostics = stateManager.diagnosticsProvider;
+                        if (diagnostics) {
+                            diagnostics.updateDiagnostics();
+                        }
+                        return false;
+                    }
+
+                    vscode.window.showInformationMessage('✅ All manifesto compliance checks passed');
+                    return true;
+                } catch (error) {
+                    console.error('Compliance enforcement failed:', error);
+                    vscode.window.showErrorMessage('❌ Compliance enforcement failed');
+                    return false;
+                }
+            }),
+
+            vscode.commands.registerCommand('manifesto-enforcer.verifyAIResponse', async (response: string) => {
+                try {
+                    // CRITICAL: Verify AI response follows manifesto
+                    if (!response || typeof response !== 'string') {
+                        return false;
+                    }
+
+                    // MANDATORY: Check for manifesto violations in AI response
+                    const violations = [
+                        'skip the tests',
+                        'fix them later',
+                        'temporary solution',
+                        'quick hack',
+                        'TODO: implement',
+                        'ignore the error',
+                        'disable the warning'
+                    ];
+
+                    const lowerResponse = response.toLowerCase();
+                    const hasViolations = violations.some(violation =>
+                        lowerResponse.includes(violation.toLowerCase())
+                    );
+
+                    if (hasViolations) {
+                        vscode.window.showWarningMessage('⚠️ AI response contains manifesto violations');
+                        return false;
+                    }
+
+                    return true;
+                } catch (error) {
+                    console.error('AI response verification failed:', error);
+                    return false;
+                }
+            }),
+
             vscode.commands.registerCommand('manifestoEnforcer.addGlossaryTermFromTree', async () => {
                 try {
                     vscode.commands.executeCommand('piggieChatPanel.focus');
@@ -257,6 +518,36 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                 } catch (error) {
                     vscode.window.showErrorMessage(`Failed to remove term: ${error}`);
+                }
+            }),
+
+            vscode.commands.registerCommand('manifestoEnforcer.executeCodeAction', async (data: { code: string; language: string; fileName: string }) => {
+                try {
+                    // CRITICAL: Input validation
+                    if (!data || !data.code || !data.language) {
+                        throw new Error('Invalid code execution data provided');
+                    }
+
+                    // Import TerminalManager dynamically to avoid circular dependencies
+                    const { TerminalManager } = await import('./core/TerminalManager');
+
+                    // Execute the code using TerminalManager
+                    const result = await TerminalManager.executeScriptInTerminal(data.code, data.language);
+
+                    // Show success message
+                    vscode.window.showInformationMessage('🚀 Code executed successfully! Check the terminal for output.');
+
+                    // Optionally, send result back to chat
+                    provider.handleQuickMessage(`✅ **Manual Execution Completed**\n\n${result}`);
+
+                } catch (error) {
+                    // MANDATORY: Comprehensive error handling (manifesto requirement)
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
+                    console.error('Code execution command failed:', error);
+                    vscode.window.showErrorMessage(`Code execution failed: ${errorMessage}`);
+
+                    // Send error back to chat
+                    provider.handleQuickMessage(`❌ **Manual Execution Failed**: ${errorMessage}`);
                 }
             })
         );
@@ -286,51 +577,28 @@ export function activate(context: vscode.ExtensionContext) {
 
 /**
  * Extension deactivation
+ * MANDATORY: Proper resource disposal to prevent memory leaks
  */
-export function deactivate() {
-    console.log('🐷 Piggie extension is now deactivated');
-}
-
-/**
- * Index manifesto rules for efficient token usage
- */
-function indexManifesto(stateManager: StateManager): void {
+export async function deactivate(): Promise<void> {
     try {
-        // Basic manifesto rules - can be expanded
-        const manifestoRules = [
-            {
-                id: 'error-handling',
-                title: 'Comprehensive Error Handling',
-                description: 'All functions must include proper error handling with try-catch blocks',
-                category: 'reliability'
-            },
-            {
-                id: 'input-validation',
-                title: 'Input Validation',
-                description: 'All inputs must be validated before processing',
-                category: 'security'
-            },
-            {
-                id: 'documentation',
-                title: 'Code Documentation',
-                description: 'All public functions and classes must be documented',
-                category: 'maintainability'
-            }
-        ];
+        console.log('🐷 Piggie extension deactivating...');
 
-        stateManager.manifestoRules = manifestoRules;
-        console.log('📋 Manifesto rules indexed successfully');
+        // Dispose StateManager singleton to clean up resources
+        const stateManager = StateManager.getInstance();
+        if (stateManager) {
+            await stateManager.dispose();
+        }
+
+        console.log('🐷 Piggie extension is now deactivated');
     } catch (error) {
-        console.error('Failed to index manifesto:', error);
+        console.error('Error during extension deactivation:', error);
     }
 }
-
-
 
 /**
  * Setup file change detection for auto re-indexing
  */
-function setupFileChangeDetection(stateManager: StateManager): void {
+export function setupFileChangeDetection(stateManager: StateManager): void {
     try {
         const watcher = vscode.workspace.createFileSystemWatcher('**/*.{ts,js,tsx,jsx,py,java,cs,cpp,h}');
         
@@ -384,23 +652,84 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
         this.stateManager = stateManager || StateManager.getInstance(context);
         this.commandManager = new ChatCommandManager();
         this.agentManager = new AgentManager();
-        this.initializeAgents();
+        // Don't initialize agents in constructor - do it lazily when needed
     }
 
     private async initializeAgents(): Promise<void> {
         try {
-            const auggieConfig: AgentConfig = {
-                id: 'auggie-default',
-                name: 'Auggie',
-                provider: AgentProvider.AUGGIE,
+            // Always register LocalAgent first as guaranteed fallback
+            const localConfig: AgentConfig = {
+                id: 'local-agent',
+                name: 'Local Assistant',
+                provider: AgentProvider.LOCAL,
                 isEnabled: true,
             };
-            const auggieAdapter = new AuggieAdapter(auggieConfig);
-            await this.agentManager.registerAgent(auggieAdapter);
-            console.log('🐷 Auggie agent registered successfully.');
+            const localAgent = new LocalAgent(localConfig);
+            await this.agentManager.registerAgent(localAgent);
+            console.log('🐷 Local agent registered successfully.');
+
+            // Register all available agents with graceful fallbacks
+            await this.registerAgentWithFallback('Amazon Q', () => {
+                const config: AgentConfig = {
+                    id: 'amazonq-default',
+                    name: 'Amazon Q',
+                    provider: AgentProvider.AMAZON_Q,
+                    isEnabled: true,
+                };
+                return new AmazonQAdapter(config);
+            });
+
+            await this.registerAgentWithFallback('Auggie', () => {
+                const config: AgentConfig = {
+                    id: 'auggie-default',
+                    name: 'Auggie',
+                    provider: AgentProvider.AUGGIE,
+                    isEnabled: true,
+                };
+                return new AuggieAdapter(config);
+            });
+
+            await this.registerAgentWithFallback('Cline', () => {
+                const config: AgentConfig = {
+                    id: 'cline-default',
+                    name: 'Cline',
+                    provider: AgentProvider.CLINE,
+                    isEnabled: true,
+                };
+                return new ClineAdapter(config);
+            });
+
+            await this.registerAgentWithFallback('Ollama', () => {
+                const config: AgentConfig = {
+                    id: 'ollama-default',
+                    name: 'Ollama',
+                    provider: AgentProvider.OLLAMA,
+                    isEnabled: true,
+                };
+                return new OllamaAdapter(config);
+            });
+
+            // Ensure at least one agent is available (LocalAgent should always be available)
+            const availableAgents = this.agentManager.getAvailableAgents();
+            console.log(`🐷 Initialized ${availableAgents.length} agents:`, availableAgents.map(a => a.name).join(', '));
+
         } catch (error) {
             console.error('🐷 Failed to initialize agents:', error);
-            vscode.window.showErrorMessage('Piggie failed to connect to its AI agents.');
+            vscode.window.showErrorMessage('Piggie failed to initialize AI agents.');
+        }
+    }
+
+    /**
+     * Register an agent with graceful fallback handling
+     */
+    private async registerAgentWithFallback(agentName: string, createAgent: () => any): Promise<void> {
+        try {
+            const agent = createAgent();
+            await this.agentManager.registerAgent(agent);
+            console.log(`🐷 ${agentName} agent registered successfully.`);
+        } catch (error) {
+            console.warn(`🐷 ${agentName} agent registration failed (graceful fallback):`, error);
+            // Don't show error to user - graceful degradation
         }
     }
 
@@ -410,6 +739,11 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
         _token: vscode.CancellationToken,
     ) {
         this._view = webviewView;
+
+        // Initialize agents when webview is first resolved
+        this.initializeAgents().catch(error => {
+            console.error('🐷 Failed to initialize agents in webview:', error);
+        });
 
         webviewView.webview.options = {
             enableScripts: true,
@@ -442,6 +776,7 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                                 console.log(`🛡️ Manifesto Mode: ${data.value ? 'ON' : 'OFF'}`);
                                 break;
                             case 'isAgentMode':
+                                console.log(`🔧 Toggle received: isAgentMode = ${data.value} (UI sent: ${data.value ? 'agent' : 'chat'})`);
                                 this.stateManager.isAgentMode = data.value;
                                 console.log(`🤖 Agent Mode: ${data.value ? 'ON' : 'OFF'}`);
                                 break;
@@ -453,9 +788,16 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                                 this.stateManager.isAutoMode = data.value;
                                 console.log(`⚡ Auto Mode: ${data.value ? 'ON' : 'OFF'}`);
                                 break;
+                            case 'isTddMode':
+                                this.stateManager.isTddMode = data.value;
+                                console.log(`🧪 TDD Mode: ${data.value ? 'ON' : 'OFF'}`);
+                                break;
                             default:
                                 console.warn(`Unknown setting: ${data.key}`);
                         }
+                        break;
+                    case 'executeAction':
+                        await this.handleActionExecution(data.actionCommand, data.actionId, data.actionData);
                         break;
                 }
             } catch (error) {
@@ -531,6 +873,34 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 command: 'addMessage',
                 content: content
             });
+        }
+    }
+
+    /**
+     * Handle action button execution from chat
+     */
+    private async handleActionExecution(actionCommand: string, actionId: string, actionData: any): Promise<void> {
+        try {
+            const autoModeManager = new AutoModeManager(this.stateManager);
+
+            // Create action object
+            const action = {
+                id: actionId,
+                label: `Execute ${actionCommand}`,
+                command: actionCommand,
+                data: actionData
+            };
+
+            // Execute the action
+            const result = await autoModeManager.executeAction(action);
+
+            // Send success response to chat
+            this.sendResponse(`✅ **Action Completed!**\n\n${result}`);
+
+        } catch (error) {
+            // Send error response to chat
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.sendResponse(`❌ **Action Failed:** ${errorMessage}`);
         }
     }
 
@@ -729,6 +1099,7 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 .toolbar-button { padding: 6px 12px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; transition: background-color 0.2s, opacity 0.2s; }
                 .toolbar-button:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
                 .toolbar-button:disabled { opacity: 0.6; cursor: not-allowed; background: var(--vscode-button-secondaryBackground); }
+                .status-container { padding: 4px 12px; background: var(--vscode-sideBar-background); border-bottom: 1px solid var(--vscode-sideBar-border); }
                 .status-indicator { font-size: 11px; color: var(--vscode-descriptionForeground); }
 
                 /* Messages area */
@@ -769,6 +1140,16 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 .glossary-input input { flex: 1; padding: 6px 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 3px; font-size: 12px; }
                 .glossary-add-btn { padding: 6px 12px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
                 .glossary-close-btn { padding: 6px 8px; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+
+                /* Action buttons in chat responses */
+                .chat-actions { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+                .action-button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+                .action-button:hover { opacity: 0.8; transform: translateY(-1px); }
+                .action-button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+                .action-button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+                .action-button.success { background: #28a745; color: white; }
+                .action-button.warning { background: #ffc107; color: #212529; }
+                .action-button.danger { background: #dc3545; color: white; }
             </style>
         </head>
         <body>
@@ -777,6 +1158,18 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                 <div class="top-toolbar">
                     <button id="indexButton" class="toolbar-button">📚 Index Codebase</button>
                     <button id="clearChatButton" class="toolbar-button">🗑️ Clear Chat</button>
+                    <label class="auto-toggle">
+                        <input type="checkbox" id="tddToggle" />
+                        🧪 TDD
+                    </label>
+                    <label class="auto-toggle">
+                        <input type="checkbox" id="uiTestsToggle" />
+                        🎭 UI Tests
+                    </label>
+                </div>
+
+                <!-- Index status indicator -->
+                <div class="status-container">
                     <span id="indexStatus" class="status-indicator">Not indexed</span>
                 </div>
 
@@ -894,6 +1287,14 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                     vscode.postMessage({ command: 'changeSetting', key: 'isAutoMode', value: e.target.checked });
                 });
 
+                tddToggle.addEventListener('change', e => {
+                    vscode.postMessage({ command: 'changeSetting', key: 'isTddMode', value: e.target.checked });
+                });
+
+                uiTestsToggle.addEventListener('change', e => {
+                    vscode.postMessage({ command: 'changeSetting', key: 'isUiTddMode', value: e.target.checked });
+                });
+
                 // Glossary panel controls
                 addTermButton.addEventListener('click', () => {
                     const term = document.getElementById('termInput').value.trim();
@@ -934,6 +1335,25 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
 
                     messagesDiv.appendChild(messageDiv);
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                    // Add event listeners to any action buttons in the new message
+                    const actionButtons = messageDiv.querySelectorAll('.action-button');
+                    actionButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const command = button.getAttribute('data-action-command');
+                            const actionId = button.getAttribute('data-action-id');
+                            const actionData = button.getAttribute('data-action-data');
+
+                            if (command) {
+                                vscode.postMessage({
+                                    command: 'executeAction',
+                                    actionCommand: command,
+                                    actionId: actionId,
+                                    actionData: actionData ? JSON.parse(actionData) : {}
+                                });
+                            }
+                        });
+                    });
                 }
 
                 function formatMessageContent(content) {
@@ -1021,6 +1441,20 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
                         modeDropdown.value = state.core.isAgentMode ? 'agent' : 'chat';
                         agentDropdown.value = state.core.currentAgent.toLowerCase();
                         autoToggle.checked = state.core.isAutoMode;
+                        tddToggle.checked = state.core.isTddMode;
+                        uiTestsToggle.checked = state.core.isUiTddMode;
+
+                        // Debug logging to verify state sync
+                        console.log('🔧 UI State Update:', {
+                            isAgentMode: state.core.isAgentMode,
+                            modeDropdownValue: modeDropdown.value,
+                            isAutoMode: state.core.isAutoMode,
+                            autoToggleChecked: autoToggle.checked,
+                            isTddMode: state.core.isTddMode,
+                            tddToggleChecked: tddToggle.checked,
+                            isUiTddMode: state.core.isUiTddMode,
+                            uiTestsToggleChecked: uiTestsToggle.checked
+                        });
                     }
                 }
 
@@ -1070,5 +1504,31 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
             </script>
         </body>
         </html>`;
+    }
+
+    /**
+     * Dispose resources to prevent memory leaks
+     * MANDATORY: Proper resource disposal (manifesto requirement)
+     */
+    public dispose(): void {
+        try {
+            // Clear webview reference
+            this._view = undefined;
+
+            // Dispose agent manager
+            if (this.agentManager) {
+                this.agentManager.dispose();
+            }
+
+            // Clear command manager
+            if (this.commandManager) {
+                // CommandManager doesn't have dispose yet, but clear any references
+                this.commandManager = undefined as any;
+            }
+
+            console.log('🗑️ PiggieChatProvider disposed successfully');
+        } catch (error) {
+            console.error('Error disposing PiggieChatProvider:', error);
+        }
     }
 }

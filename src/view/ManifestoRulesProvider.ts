@@ -49,7 +49,7 @@ export class ManifestoRulesProvider implements vscode.TreeDataProvider<RuleItem>
     }
 }
 
-class RuleItem extends vscode.TreeItem {
+export class RuleItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly tooltip: string,

@@ -96,6 +96,7 @@ export enum AgentProvider {
   CLINE = 'cline',
   COPILOT = 'copilot',
   OPENAI = 'openai',
+  OLLAMA = 'ollama',
   LOCAL = 'local'
 }
 
@@ -109,7 +110,47 @@ export interface ChatMessage {
   timestamp: Date;
   agentId?: string;
   manifestoApplied?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+  actions?: ChatAction[];
+}
+
+/**
+ * Action safety levels for auto-mode decisions
+ */
+export enum ActionSafety {
+  SAFE = 'safe',           // Auto-execute in auto mode (create new files, generate code)
+  CAUTIOUS = 'cautious',   // Show button in auto mode (edit existing files, create manifestos)
+  UNSAFE = 'unsafe'        // Always show button (delete files, overwrite important files)
+}
+
+/**
+ * Action button for chat responses
+ */
+export interface ChatAction {
+  id: string;
+  label: string;
+  icon?: string;
+  command: string;
+  data?: ActionData;
+  style?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  safety?: ActionSafety;
+  autoExecute?: boolean;   // Override for specific actions
+}
+
+/**
+ * Data payload for chat actions
+ */
+export interface ActionData {
+  fileName?: string;
+  content?: string;
+  fileType?: string;
+  type?: string;
+  forceOverwrite?: boolean;
+  createBackup?: boolean;
+  code?: string;
+  language?: string;
+  manifestoType?: string;
+  filePath?: string;
 }
 
 /**
@@ -177,4 +218,100 @@ export interface CodeQualityResult {
   violations: string[];
   suggestions: string[];
   performanceMetrics?: PerformanceMetrics;
+}
+
+/**
+ * Codebase file information
+ */
+export interface CodebaseFile {
+  path: string;
+  content?: string;
+  symbols?: CodeSymbol[];
+  dependencies?: string[];
+  imports?: string[];
+  lastModified?: Date;
+  size?: number;
+  language?: string;
+}
+
+/**
+ * Code symbol information
+ */
+export interface CodeSymbol {
+  name: string;
+  type: 'function' | 'class' | 'interface' | 'variable' | 'constant' | 'enum';
+  line?: number;
+  column?: number;
+  signature?: string;
+  documentation?: string;
+}
+
+/**
+ * Manifesto index structure
+ */
+export interface ManifestoIndex {
+  rules: ManifestoRule[];
+  categories: Record<RuleCategory, ManifestoRule[]>;
+  lastUpdated: Date;
+  version: string;
+}
+
+/**
+ * Chat context for agent communication
+ */
+export interface ChatContext {
+  conversationId?: string;
+  previousMessages?: ChatMessage[];
+  manifestoRules?: ManifestoRule[];
+  codebaseContext?: CodebaseFile[];
+  userPreferences?: Record<string, unknown>;
+}
+
+/**
+ * Cache entry for performance optimization
+ */
+export interface CacheEntry {
+  data: unknown;
+  timestamp: Date;
+  expiresAt?: Date;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Git configuration
+ */
+export interface GitConfig {
+  userName?: string;
+  userEmail?: string;
+  remoteUrl?: string;
+  currentBranch?: string;
+  lastCommit?: string;
+  isDirty?: boolean;
+}
+
+/**
+ * Glossary term definition
+ */
+export interface GlossaryTerm {
+  term: string;
+  definition: string;
+  category?: string;
+  examples?: string[];
+  relatedTerms?: string[];
+  lastUpdated?: Date;
+  dateAdded?: Date;
+  usage?: number;
+}
+
+/**
+ * State summary for debugging and monitoring
+ */
+export interface StateSummary {
+  manifestoMode: boolean;
+  currentAgent: string;
+  manifestoRulesCount: number;
+  codebaseFilesCount: number;
+  glossaryTermsCount: number;
+  lastActivity?: Date;
+  memoryUsage?: number;
 }

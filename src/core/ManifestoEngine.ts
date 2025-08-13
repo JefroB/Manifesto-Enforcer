@@ -42,23 +42,25 @@ export class ManifestoEngine {
       const rules: ManifestoRule[] = [];
       const lines = content.split('\n');
       let currentCategory = RuleCategory.GENERAL;
+      let currentSeverity = RuleSeverity.RECOMMENDED;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        
+
         // Skip empty lines and comments
         if (!line || line.startsWith('<!--')) continue;
 
-        // Detect category headers
+        // Detect category headers and severity (both ## and ###)
         if (line.startsWith('##')) {
           currentCategory = this.detectCategory(line);
+          currentSeverity = this.detectSeverityFromHeader(line);
           continue;
         }
 
-        // Parse rule lines - also check for lines under CRITICAL INSTRUCTIONS
-        if (line.startsWith('-') || line.startsWith('*') ||
-            (lines[i-1] && lines[i-1].includes('CRITICAL INSTRUCTIONS') && line.trim().length > 0)) {
-          const rule = this.parseRuleLine(line, i, currentCategory);
+        // Parse rule lines - bullet points and critical AI directives
+        if ((line.startsWith('- ') || line.startsWith('* ')) ||
+            (line.startsWith('**ATTENTION AI') || line.startsWith('**REMEMBER:'))) {
+          const rule = this.parseRuleLine(line, i, currentCategory, currentSeverity);
           if (rule) {
             rules.push(rule);
           }
@@ -235,23 +237,51 @@ Respond as a development agent who strictly enforces the manifesto principles ab
     return RuleCategory.GENERAL;
   }
 
-  private parseRuleLine(line: string, lineNumber: number, category: RuleCategory): ManifestoRule | null {
-    // Remove bullet points and trim
-    const cleanLine = line.replace(/^[-*]\s*/, '').trim();
+  private detectSeverityFromHeader(header: string): RuleSeverity {
+    const upperHeader = header.toUpperCase();
+
+    if (upperHeader.includes('CRITICAL')) return RuleSeverity.CRITICAL;
+    if (upperHeader.includes('MANDATORY')) return RuleSeverity.MANDATORY;
+    if (upperHeader.includes('REQUIRED')) return RuleSeverity.REQUIRED;
+    if (upperHeader.includes('OPTIMIZE')) return RuleSeverity.OPTIMIZE;
+
+    return RuleSeverity.RECOMMENDED;
+  }
+
+  private detectSeverityFromRuleText(ruleText: string): RuleSeverity {
+    const upperText = ruleText.toUpperCase();
+
+    // AI directive rules are CRITICAL - they govern how to follow all other rules
+    if (upperText.includes('ATTENTION AI') || upperText.includes('REMEMBER:')) return RuleSeverity.CRITICAL;
+
+    if (upperText.includes('**CRITICAL:') || upperText.includes('**PROHIBITED:')) return RuleSeverity.CRITICAL;
+    if (upperText.includes('**MANDATORY:')) return RuleSeverity.MANDATORY;
+    if (upperText.includes('**REQUIRED:')) return RuleSeverity.REQUIRED;
+    if (upperText.includes('**ENFORCE:')) return RuleSeverity.REQUIRED; // ENFORCE should be REQUIRED level
+    if (upperText.includes('**OPTIMIZE:')) return RuleSeverity.OPTIMIZE;
+    if (upperText.includes('**HANDLE:')) return RuleSeverity.REQUIRED; // HANDLE should be REQUIRED level
+    if (upperText.includes('**DOCUMENT:')) return RuleSeverity.REQUIRED; // DOCUMENT should be REQUIRED level
+    if (upperText.includes('**STYLE:')) return RuleSeverity.RECOMMENDED; // STYLE should be RECOMMENDED level
+
+    return RuleSeverity.RECOMMENDED;
+  }
+
+  private parseRuleLine(line: string, lineNumber: number, category: RuleCategory, headerSeverity?: RuleSeverity): ManifestoRule | null {
+    // Remove bullet points only for actual bullet points, preserve AI directives
+    let cleanLine = line.trim();
+
+    // Only remove bullet point markers for actual bullet points (- or * followed by space)
+    // Do NOT remove ** from AI directives like **ATTENTION AI** or **REMEMBER:**
+    if (cleanLine.match(/^[-*]\s/)) {
+      cleanLine = cleanLine.replace(/^[-*]\s*/, '').trim();
+    }
+
     if (!cleanLine) return null;
 
-    // Detect severity from keywords - check context too
-    let severity = RuleSeverity.RECOMMENDED;
-    const upperLine = cleanLine.toUpperCase();
-
-    if (upperLine.includes('CRITICAL') || cleanLine.includes('## CRITICAL')) severity = RuleSeverity.CRITICAL;
-    else if (upperLine.includes('MANDATORY')) severity = RuleSeverity.MANDATORY;
-    else if (upperLine.includes('REQUIRED')) severity = RuleSeverity.REQUIRED;
-    else if (upperLine.includes('OPTIMIZE')) severity = RuleSeverity.OPTIMIZE;
-
-    // Special case: lines under CRITICAL INSTRUCTIONS should be CRITICAL
-    if (category === RuleCategory.GENERAL && cleanLine.includes('Follow EVERY principle')) {
-      severity = RuleSeverity.CRITICAL;
+    // Detect severity from rule text first (most specific), then header severity
+    let severity = this.detectSeverityFromRuleText(cleanLine);
+    if (severity === RuleSeverity.RECOMMENDED && headerSeverity) {
+      severity = headerSeverity;
     }
 
     return {
@@ -264,6 +294,50 @@ Respond as a development agent who strictly enforces the manifesto principles ab
 
   private async checkRule(code: string, rule: ManifestoRule): Promise<RuleViolation[]> {
     const violations: RuleViolation[] = [];
+
+    // Check specific rule patterns based on rule text
+    const ruleText = rule.text.toLowerCase();
+
+    // Check for console.log violations
+    if (ruleText.includes('console.log') && code.includes('console.log')) {
+      violations.push({
+        ruleId: rule.id,
+        ruleSeverity: rule.severity,
+        message: `Code violates rule: ${rule.text}`,
+        suggestion: `Remove console.log statements from production code`
+      });
+    }
+
+    // Check for hardcoded credentials
+    if (ruleText.includes('hardcoded') && ruleText.includes('credential')) {
+      const credentialPattern = /(password|apikey|secret|token)\s*[:=]\s*['"][^'"]+['"]/i;
+      if (credentialPattern.test(code)) {
+        violations.push({
+          ruleId: rule.id,
+          ruleSeverity: rule.severity,
+          message: `Code violates rule: ${rule.text}`,
+          suggestion: `Use environment variables or secure configuration for credentials`
+        });
+      }
+    }
+
+    // Check for missing error handling in async functions
+    if (ruleText.includes('error handling') && ruleText.includes('async')) {
+      const asyncFunctionPattern = /async\s+function[^{]*{[^}]*}/g;
+      const matches = code.match(asyncFunctionPattern);
+      if (matches) {
+        for (const match of matches) {
+          if (!match.includes('try') && !match.includes('catch')) {
+            violations.push({
+              ruleId: rule.id,
+              ruleSeverity: rule.severity,
+              message: `Code violates rule: ${rule.text}`,
+              suggestion: `Add try-catch blocks to async functions`
+            });
+          }
+        }
+      }
+    }
 
     // If rule has a pattern, check it
     if (rule.pattern && !rule.pattern.test(code)) {
@@ -303,6 +377,164 @@ Respond as a development agent who strictly enforces the manifesto principles ab
 
   /**
    * Dispose resources and clear sensitive data
+   * CRITICAL: Validate entire workspace for manifesto compliance
+   * REQUIRED: Check all source files for violations
+   */
+  async validateWorkspace(): Promise<RuleViolation[]> {
+    const startTime = Date.now();
+
+    try {
+      const violations: RuleViolation[] = [];
+
+      // MANDATORY: Input validation
+      const vscode = require('vscode');
+      if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        return violations;
+      }
+
+      // Find all source files
+      const sourceFiles = await vscode.workspace.findFiles(
+        '**/*.{ts,js,tsx,jsx,py,java,cpp,c,cs,go,rs,php}',
+        '**/node_modules/**'
+      );
+
+      // Validate each file
+      for (const fileUri of sourceFiles) {
+        try {
+          const document = await vscode.workspace.openTextDocument(fileUri);
+          const fileViolations = await this.validateCode(document.getText(), fileUri.fsPath);
+          violations.push(...fileViolations);
+        } catch (error) {
+          console.error(`Error validating file ${fileUri.fsPath}:`, error);
+        }
+      }
+
+      // OPTIMIZE: Track performance
+      const duration = Date.now() - startTime;
+      this.performanceMetrics.push({
+        responseTime: duration,
+        memoryUsage: process.memoryUsage().heapUsed,
+        timestamp: new Date()
+      });
+
+      return violations;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Workspace validation failed: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * CRITICAL: Validate code content for manifesto compliance
+   * REQUIRED: Check for specific rule violations
+   */
+  async validateCode(code: string, fileName: string): Promise<RuleViolation[]> {
+    const startTime = Date.now();
+
+    try {
+      // MANDATORY: Input validation
+      if (!code || typeof code !== 'string') {
+        return [];
+      }
+
+      if (!fileName || typeof fileName !== 'string') {
+        fileName = 'unknown';
+      }
+
+      const violations: RuleViolation[] = [];
+      const lines = code.split('\n');
+
+      // Check for manifesto violations
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineNumber = i + 1;
+
+        // CRITICAL: Check for security violations
+        if (line.includes('innerHTML') && !line.includes('// SECURITY:')) {
+          violations.push({
+            ruleId: 'security-innerHTML',
+            ruleSeverity: RuleSeverity.CRITICAL,
+            message: 'Use of innerHTML without security comment - potential XSS vulnerability',
+            line: lineNumber,
+            column: line.indexOf('innerHTML')
+          });
+        }
+
+        // MANDATORY: Check for missing error handling
+        if (line.includes('function ') && !this.hasErrorHandling(lines, i)) {
+          violations.push({
+            ruleId: 'missing-error-handling',
+            ruleSeverity: RuleSeverity.MANDATORY,
+            message: 'Function missing try-catch error handling',
+            line: lineNumber,
+            column: 0
+          });
+        }
+
+        // REQUIRED: Check for missing JSDoc
+        if (line.includes('function ') && !this.hasJSDoc(lines, i)) {
+          violations.push({
+            ruleId: 'missing-jsdoc',
+            ruleSeverity: RuleSeverity.REQUIRED,
+            message: 'Function missing JSDoc documentation',
+            line: lineNumber,
+            column: 0
+          });
+        }
+      }
+
+      // OPTIMIZE: Track performance
+      const duration = Date.now() - startTime;
+      this.performanceMetrics.push({
+        responseTime: duration,
+        memoryUsage: process.memoryUsage().heapUsed,
+        timestamp: new Date()
+      });
+
+      return violations;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Code validation failed: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * HELPER: Check if function has error handling
+   */
+  private hasErrorHandling(lines: string[], functionLineIndex: number): boolean {
+    try {
+      // Look for try-catch in the next 20 lines
+      const searchEnd = Math.min(functionLineIndex + 20, lines.length);
+      for (let i = functionLineIndex; i < searchEnd; i++) {
+        if (lines[i].includes('try') && lines[i].includes('{')) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * HELPER: Check if function has JSDoc
+   */
+  private hasJSDoc(lines: string[], functionLineIndex: number): boolean {
+    try {
+      // Look for JSDoc in the previous 10 lines
+      const searchStart = Math.max(functionLineIndex - 10, 0);
+      for (let i = searchStart; i < functionLineIndex; i++) {
+        if (lines[i].includes('/**') || lines[i].includes('* @')) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * MANDATORY: Proper resource disposal
    */
   dispose(): void {

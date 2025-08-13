@@ -62,7 +62,7 @@ describe('PiggieStatusBar', () => {
       statusBar.updateManifestoMode(true);
 
       expect(mockStatusBarItem.text).toContain('🛡️');
-      expect(mockStatusBarItem.text).toContain('Manifesto ON');
+      expect(mockStatusBarItem.text).toContain('Enforcement ENABLED');
       expect(mockStatusBarItem.tooltip).toContain('Piggie is enforcing manifesto rules');
       expect(mockStatusBarItem.backgroundColor).toBeUndefined();
     });
@@ -71,8 +71,8 @@ describe('PiggieStatusBar', () => {
       statusBar.updateManifestoMode(false);
 
       expect(mockStatusBarItem.text).toContain('⚡');
-      expect(mockStatusBarItem.text).toContain('Vibe Mode');
-      expect(mockStatusBarItem.tooltip).toContain('Piggie is in casual mode');
+      expect(mockStatusBarItem.text).toContain('Enforcement DISABLED');
+      expect(mockStatusBarItem.tooltip).toContain('enforcement is disabled');
       expect(mockStatusBarItem.backgroundColor).toBeDefined();
     });
 

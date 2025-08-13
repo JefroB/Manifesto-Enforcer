@@ -45,7 +45,7 @@ describe('ManifestoEngine', () => {
       expect(rules).toHaveLength(5);
       expect(rules[0]).toMatchObject({
         text: 'Follow EVERY principle in the manifesto above',
-        severity: RuleSeverity.RECOMMENDED, // Will be RECOMMENDED unless explicitly marked CRITICAL
+        severity: RuleSeverity.CRITICAL, // Default severity is now CRITICAL for thorough compliance
         category: RuleCategory.GENERAL
       });
     });
@@ -62,13 +62,13 @@ describe('ManifestoEngine', () => {
 
     it('should complete parsing thoroughly', async () => {
       const largeManifesto = '# Test\n' + '- Rule\n'.repeat(1000);
-      const startTime = Date.now();
 
       const rules = await engine.parseManifesto(largeManifesto);
 
-      const duration = Date.now() - startTime;
+      // Verify thoroughness - all rules should be parsed
       expect(rules.length).toBe(1000); // Should parse all rules thoroughly
-      expect(duration).toBeGreaterThan(0); // Should take time for thorough parsing
+      expect(rules[0]).toHaveProperty('text');
+      expect(rules[0]).toHaveProperty('severity');
     });
   });
 

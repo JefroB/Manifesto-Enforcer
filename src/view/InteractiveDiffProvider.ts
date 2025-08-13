@@ -158,28 +158,54 @@ export class InteractiveDiffProvider {
      * Determine the language ID from file extension
      */
     private getLanguageFromFileName(fileName: string): string {
-        const ext = path.extname(fileName).toLowerCase();
-        const languageMap: { [key: string]: string } = {
-            '.ts': 'typescript',
-            '.js': 'javascript',
-            '.tsx': 'typescriptreact',
-            '.jsx': 'javascriptreact',
-            '.py': 'python',
-            '.java': 'java',
-            '.cs': 'csharp',
-            '.cpp': 'cpp',
-            '.c': 'c',
-            '.h': 'c',
-            '.hpp': 'cpp',
-            '.md': 'markdown',
-            '.json': 'json',
-            '.html': 'html',
-            '.css': 'css',
-            '.scss': 'scss',
-            '.less': 'less'
-        };
+        try {
+            const ext = path.extname(fileName).toLowerCase();
+            const languageMap: { [key: string]: string } = {
+                '.ts': 'typescript',
+                '.js': 'javascript',
+                '.tsx': 'typescriptreact',
+                '.jsx': 'javascriptreact',
+                '.py': 'python',
+                '.java': 'java',
+                '.cs': 'csharp',
+                '.cpp': 'cpp',
+                '.c': 'c',
+                '.h': 'c',
+                '.hpp': 'cpp',
+                '.md': 'markdown',
+                '.json': 'json',
+                '.html': 'html',
+                '.css': 'css',
+                '.scss': 'scss',
+                '.less': 'less'
+            };
 
-        return languageMap[ext] || 'plaintext';
+            return languageMap[ext] || 'plaintext';
+        } catch (error) {
+            // Fallback if path.extname is not available (e.g., in tests)
+            const lastDot = fileName.lastIndexOf('.');
+            const ext = lastDot >= 0 ? fileName.substring(lastDot).toLowerCase() : '';
+            const languageMap: { [key: string]: string } = {
+                '.ts': 'typescript',
+                '.js': 'javascript',
+                '.tsx': 'typescriptreact',
+                '.jsx': 'javascriptreact',
+                '.py': 'python',
+                '.java': 'java',
+                '.cs': 'csharp',
+                '.cpp': 'cpp',
+                '.c': 'c',
+                '.h': 'c',
+                '.hpp': 'cpp',
+                '.md': 'markdown',
+                '.json': 'json',
+                '.html': 'html',
+                '.css': 'css',
+                '.scss': 'scss',
+                '.less': 'less'
+            };
+            return languageMap[ext] || 'plaintext';
+        }
     }
 
     /**
