@@ -38,8 +38,8 @@ describe('PiggieFileManager', () => {
       const result = await fileManager.writeCodeToFile(operation);
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('test.ts');
-      expect(mockFs.writeFile).toHaveBeenCalledWith('test.ts', operation.content, 'utf8');
+      expect(result.path).toBe('\\test\\workspace\\test.ts'); // Now returns full workspace path
+      expect(mockFs.writeFile).toHaveBeenCalledWith('\\test\\workspace\\test.ts', operation.content, 'utf8');
     });
 
     it('should write new content to file without backup when file does not exist', async () => {
@@ -57,7 +57,7 @@ describe('PiggieFileManager', () => {
 
       // Verify new content was written (no backup needed for new files)
       expect(mockFs.writeFile).toHaveBeenCalledWith(
-        'new.ts',
+        '\\test\\workspace\\new.ts', // Now uses full workspace path
         'new content',
         'utf8'
       );

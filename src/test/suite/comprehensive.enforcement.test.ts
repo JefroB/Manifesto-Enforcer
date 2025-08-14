@@ -220,12 +220,16 @@ suite('Comprehensive Enforcement Tests', () => {
 
         test('Should handle quick chat functionality', async () => {
             try {
-                await vscode.commands.executeCommand('manifestoEnforcer.quickChat');
-                console.log('✅ Quick chat command executed');
-                assert.ok(true, 'Quick chat works');
+                // Test that the command is registered - don't execute to avoid input dialogs
+                const commands = await vscode.commands.getCommands();
+                assert.ok(
+                    commands.includes('manifestoEnforcer.quickChat'),
+                    'Quick chat command should be registered'
+                );
+                console.log('✅ Quick chat command is registered');
             } catch (error) {
-                console.log('Quick chat command exists but may require user input');
-                assert.ok(true, 'Command is registered');
+                console.log('Quick chat command test failed:', error);
+                assert.fail(`Quick chat test failed: ${error}`);
             }
         });
     });

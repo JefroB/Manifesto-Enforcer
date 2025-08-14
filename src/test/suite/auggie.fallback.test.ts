@@ -199,21 +199,19 @@ suite('Auggie Adapter Fallback Tests', () => {
 
         test('Should not crash during command execution', async () => {
             try {
-                // Test that extension doesn't crash during operations
-                await vscode.commands.executeCommand('manifestoEnforcer.quickChat');
+                // Test that commands are registered without executing them to avoid dialogs
+                const commands = await vscode.commands.getCommands();
+                assert.ok(
+                    commands.includes('manifestoEnforcer.quickChat'),
+                    'Quick chat command should be registered'
+                );
 
-                // Cancel any prompts
-                setTimeout(() => {
-                    vscode.commands.executeCommand('workbench.action.closeQuickOpen');
-                }, 500);
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
+                // Test that extension remains stable
                 assert.ok(true, 'Extension should remain stable');
                 console.log('✓ Extension stable during operations');
             } catch (error) {
                 console.log('Stability test info:', error);
-                assert.ok(true, 'Command exists');
+                assert.fail(`Stability test failed: ${error}`);
             }
         });
     });

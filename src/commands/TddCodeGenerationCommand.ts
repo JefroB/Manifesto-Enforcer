@@ -159,16 +159,38 @@ export class TddCodeGenerationCommand implements IChatCommand {
             const unitTestCode = typeof unitTestResponse === 'string' ? unitTestResponse : unitTestResponse.content;
 
             // Save unit test file
-            const unitTestPath = await this.saveCodeFile(unitTestCode, 'test', stateManager);
+            const unitTestFileUri = await this.saveCodeFile(unitTestCode, 'test', stateManager);
+
+            // Open unit test file in VS Code editor
+            if (unitTestFileUri) {
+                try {
+                    const document = await vscode.workspace.openTextDocument(unitTestFileUri);
+                    await vscode.window.showTextDocument(document);
+                } catch (openError) {
+                    console.warn('Failed to open unit test file in editor:', openError);
+                    // Don't throw - file creation was successful
+                }
+            }
 
             // Step 2: Conditionally generate failing UI test
             let uiTestCode = '';
-            let uiTestPath = '';
+            let uiTestFileUri: vscode.Uri | null = null;
             if (shouldGenerateUiTests) {
                 const uiTestPrompt = this.buildTestPrompt(input, stateManager, 'ui');
                 const uiTestResponse = await agentManager.sendMessage(uiTestPrompt, true);
                 uiTestCode = typeof uiTestResponse === 'string' ? uiTestResponse : uiTestResponse.content;
-                uiTestPath = await this.saveCodeFile(uiTestCode, 'ui-test', stateManager);
+                uiTestFileUri = await this.saveCodeFile(uiTestCode, 'ui-test', stateManager);
+
+                // Open UI test file in VS Code editor
+                if (uiTestFileUri) {
+                    try {
+                        const document = await vscode.workspace.openTextDocument(uiTestFileUri);
+                        await vscode.window.showTextDocument(document);
+                    } catch (openError) {
+                        console.warn('Failed to open UI test file in editor:', openError);
+                        // Don't throw - file creation was successful
+                    }
+                }
             }
 
             // Step 3: Run tests to confirm they fail
@@ -183,18 +205,35 @@ export class TddCodeGenerationCommand implements IChatCommand {
             const implementationCode = typeof implementationResponse === 'string' ? implementationResponse : implementationResponse.content;
 
             // Save implementation file
-            const implementationPath = await this.saveCodeFile(implementationCode, 'implementation', stateManager);
+            const implementationFileUri = await this.saveCodeFile(implementationCode, 'implementation', stateManager);
+
+            // Open implementation file in VS Code editor
+            if (implementationFileUri) {
+                try {
+                    const document = await vscode.workspace.openTextDocument(implementationFileUri);
+                    await vscode.window.showTextDocument(document);
+                } catch (openError) {
+                    console.warn('Failed to open implementation file in editor:', openError);
+                    // Don't throw - file creation was successful
+                }
+            }
 
             // Step 5: Run tests again to verify they pass
             const finalTestResult = await this.runTests(stateManager);
 
             // Build completion message
             let completionMessage = '✅ **TDD Workflow Complete!**\n\n';
-            completionMessage += `🧪 **Test**: ${unitTestCode.substring(0, 100)}...\n\n`;
-            if (shouldGenerateUiTests) {
-                completionMessage += `🎭 **UI Test**: ${uiTestCode.substring(0, 100)}...\n\n`;
+
+            // Include file paths in the completion message
+            if (unitTestFileUri) {
+                completionMessage += `🧪 **Unit Test**: ${unitTestFileUri.fsPath}\n`;
             }
-            completionMessage += `💻 **Implementation**: ${implementationCode.substring(0, 100)}...\n\n`;
+            if (shouldGenerateUiTests && uiTestFileUri) {
+                completionMessage += `🎭 **UI Test**: ${uiTestFileUri.fsPath}\n`;
+            }
+            if (implementationFileUri) {
+                completionMessage += `💻 **Implementation**: ${implementationFileUri.fsPath}\n\n`;
+            }
 
             if (finalTestResult === 'passing') {
                 completionMessage += '✅ **All tests passing!**';
@@ -461,25 +500,79 @@ export class TddCodeGenerationCommand implements IChatCommand {
     }
 
     /**
-     * Save code file with proper naming
+     * Save code file with proper naming and workspace-relative paths
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     * @param code - The code content to save
+     * @param fileType - Type of file being saved (test, ui-test, implementation)
+     * @param stateManager - State manager instance
+     * @returns Promise resolving to the file URI or null if failed
      */
-    private async saveCodeFile(code: string, fileType: 'test' | 'ui-test' | 'implementation', stateManager: StateManager): Promise<string> {
+    private async saveCodeFile(code: string, fileType: 'test' | 'ui-test' | 'implementation', stateManager: StateManager): Promise<vscode.Uri | null> {
         try {
-            // This is a simplified implementation
-            // In a real implementation, you would save to the actual file system
-            const fileName = `generated_${fileType}_${Date.now()}.js`;
+            // CRITICAL: Get workspace root path
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspaceRoot) {
+                throw new Error('Cannot save file: No workspace folder is open.');
+            }
 
-            // Mock file save operation
+            // Determine subdirectory based on file type
+            let subdirectory: string;
+            if (fileType === 'test' || fileType === 'ui-test') {
+                subdirectory = 'tests';
+            } else {
+                subdirectory = 'src';
+            }
+
+            // Create subdirectory if it doesn't exist
+            const subdirectoryUri = vscode.Uri.file(path.join(workspaceRoot, subdirectory));
+            try {
+                await vscode.workspace.fs.createDirectory(subdirectoryUri);
+            } catch (dirError) {
+                // Directory might already exist, which is fine - no action needed
+                // MANIFESTO: Avoid console.log in production code
+            }
+
+            // Generate appropriate file name with proper extension
+            const techStack = stateManager.techStack || 'javascript';
+            const extension = this.getFileExtension(fileType, techStack);
+            const fileName = `generated_${fileType}_${Date.now()}.${extension}`;
+
+            // Construct full file path
+            const fullFilePath = path.join(workspaceRoot, subdirectory, fileName);
+            const fileUri = vscode.Uri.file(fullFilePath);
+
+            // Write file content
             const encoder = new TextEncoder();
             const data = encoder.encode(code);
-            const uri = vscode.Uri.file(fileName);
-            await vscode.workspace.fs.writeFile(uri, data);
+            await vscode.workspace.fs.writeFile(fileUri, data);
 
-            return fileName;
+            return fileUri;
 
         } catch (error) {
+            // MANDATORY: Comprehensive error handling (manifesto requirement)
             console.error('File save failed:', error);
             throw new Error(`Failed to save ${fileType} file: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
+     * Get appropriate file extension based on file type and tech stack
+     * @param fileType - Type of file being saved
+     * @param techStack - Technology stack being used
+     * @returns File extension without the dot
+     */
+    private getFileExtension(fileType: 'test' | 'ui-test' | 'implementation', techStack: string): string {
+        const isTest = fileType === 'test' || fileType === 'ui-test';
+
+        switch (techStack.toLowerCase()) {
+            case 'typescript':
+            case 'react':
+            case 'vue':
+            case 'angular':
+                return isTest ? 'test.ts' : 'ts';
+            case 'javascript':
+            default:
+                return isTest ? 'test.js' : 'js';
         }
     }
 }

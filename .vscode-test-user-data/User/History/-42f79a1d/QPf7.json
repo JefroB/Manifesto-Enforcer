@@ -1,0 +1,13 @@
+{
+    "manifestoEnforcer.manifestoMode": true,
+    "manifestoEnforcer.defaultMode": "chat",
+    "manifestoEnforcer.autoMode": false,
+    "manifestoEnforcer.isTddMode": false,
+    "manifestoEnforcer.isUiTddMode": false,
+    "manifestoEnforcer.techStack": "",
+    "manifestoEnforcer.testFramework": "",
+    "manifestoEnforcer.uiTestFramework": "",
+    "manifestoEnforcer.fontSize": "medium",
+    "manifestoEnforcer.showEmojis": true,
+    "manifestoEnforcer.currentAgent": "cline"
+}

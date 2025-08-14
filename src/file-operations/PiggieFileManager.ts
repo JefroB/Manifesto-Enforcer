@@ -60,9 +60,12 @@ export class PiggieFileManager {
         console.warn(`File operation took ${duration}ms - exceeds 200ms target`);
       }
 
+      // Return the full workspace path for the created file
+      const fullPath = this.getWorkspacePath(operation.path);
+
       return {
         success: true,
-        path: operation.path,
+        path: fullPath,
         backupPath,
         performanceMetrics: metrics
       };
@@ -224,7 +227,7 @@ export class PiggieFileManager {
     try {
       this.isDisposed = true;
       this.performanceMetrics = [];
-      console.log('PiggieFileManager disposed successfully');
+      // MANIFESTO: Avoid console.log in production code
     } catch (error) {
       console.error('Error disposing PiggieFileManager:', error);
     }
@@ -343,68 +346,87 @@ export class PiggieFileManager {
 
   /**
    * Perform the actual file operation
+   * CRITICAL: Use workspace-relative paths (manifesto requirement)
+   * MANDATORY: Comprehensive error handling (manifesto requirement)
    */
   private async performFileOperation(operation: FileOperation, content: string): Promise<void> {
-    switch (operation.type) {
-      case 'create':
-      case 'update':
-        // CRITICAL: Type-safe encoding handling
-        const encoding = (operation.encoding as BufferEncoding) || 'utf8';
-        await fs.writeFile(operation.path, content, encoding);
-        break;
-      case 'delete':
-        await fs.unlink(operation.path);
-        break;
-      case 'read':
-        // Read operation doesn't modify files
-        break;
-      default:
-        throw new Error(`Unsupported operation type: ${operation.type}`);
+    try {
+      // CRITICAL: Get full workspace path for the operation
+      const fullPath = this.getWorkspacePath(operation.path);
+
+      switch (operation.type) {
+        case 'create':
+        case 'update':
+          // CRITICAL: Type-safe encoding handling
+          const encoding = (operation.encoding as BufferEncoding) || 'utf8';
+          await fs.writeFile(fullPath, content, encoding);
+          break;
+        case 'delete':
+          await fs.unlink(fullPath);
+          break;
+        case 'read':
+          // Read operation doesn't modify files
+          break;
+        default:
+          throw new Error(`Unsupported operation type: ${operation.type}`);
+      }
+    } catch (error) {
+      // MANDATORY: Comprehensive error handling (manifesto requirement)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown file operation error';
+      throw new Error(`File operation failed: ${errorMessage}`);
     }
   }
 
   /**
    * Check code against manifesto compliance rules
    * REQUIRED: Comprehensive validation
+   * MANDATORY: Comprehensive error handling (manifesto requirement)
    */
   private async checkManifestoCompliance(
-    code: string, 
-    violations: string[], 
+    code: string,
+    violations: string[],
     suggestions: string[]
   ): Promise<void> {
-    // Check for JSDoc documentation (MANDATORY)
-    if (!code.includes('/**') || !code.includes('*/')) {
-      violations.push('Missing JSDoc documentation');
-      suggestions.push('Add JSDoc comments to all public functions');
-    }
-
-    // Check for error handling (MANDATORY)
-    if (!code.includes('try') && !code.includes('catch') && !code.includes('throw')) {
-      violations.push('Missing error handling');
-      suggestions.push('Add try-catch blocks for error handling');
-    }
-
-    // Check for input validation (CRITICAL)
-    if (!code.includes('if') || !code.includes('throw new Error')) {
-      violations.push('Missing input validation');
-      suggestions.push('Add input validation with proper error messages');
-    }
-
-    // Check function length (STYLE: Keep functions under 50 lines)
-    const functions = code.match(/function\s+\w+[^{]*{[^}]*}/g) || [];
-    for (const func of functions) {
-      const lineCount = func.split('\n').length;
-      if (lineCount > 50) {
-        violations.push(`Function exceeds 50 lines (${lineCount} lines)`);
-        suggestions.push('Break large functions into smaller, focused functions');
+    try {
+      // Check for JSDoc documentation (MANDATORY)
+      if (!code.includes('/**') || !code.includes('*/')) {
+        violations.push('Missing JSDoc documentation');
+        suggestions.push('Add JSDoc comments to all public functions');
       }
-    }
 
-    // Check for descriptive names (STYLE)
-    const badNames = code.match(/\b(a|b|c|x|y|z|temp|data|item)\b/g);
-    if (badNames && badNames.length > 0) {
-      violations.push('Non-descriptive variable names detected');
-      suggestions.push('Use descriptive variable and function names');
+      // Check for error handling (MANDATORY)
+      if (!code.includes('try') && !code.includes('catch') && !code.includes('throw')) {
+        violations.push('Missing error handling');
+        suggestions.push('Add try-catch blocks for error handling');
+      }
+
+      // Check for input validation (CRITICAL)
+      if (!code.includes('if') || !code.includes('throw new Error')) {
+        violations.push('Missing input validation');
+        suggestions.push('Add input validation with proper error messages');
+      }
+
+      // Check function length (STYLE: Keep functions under 50 lines)
+      const functions = code.match(/function\s+\w+[^{]*{[^}]*}/g) || [];
+      for (const func of functions) {
+        const lineCount = func.split('\n').length;
+        if (lineCount > 50) {
+          violations.push(`Function exceeds 50 lines (${lineCount} lines)`);
+          suggestions.push('Break large functions into smaller, focused functions');
+        }
+      }
+
+      // Check for descriptive names (STYLE)
+      const badNames = code.match(/\b(a|b|c|x|y|z|temp|data|item)\b/g);
+      if (badNames && badNames.length > 0) {
+        violations.push('Non-descriptive variable names detected');
+        suggestions.push('Use descriptive variable and function names');
+      }
+    } catch (error) {
+      // MANDATORY: Comprehensive error handling (manifesto requirement)
+      console.error('Manifesto compliance check failed:', error);
+      violations.push('Error during compliance check');
+      suggestions.push('Review code manually for compliance');
     }
   }
 

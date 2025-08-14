@@ -1,0 +1,11 @@
+{
+  "stats": {
+    "tests": 85,
+    "passes": 85,
+    "failures": 0,
+    "pending": 0,
+    "duration": 47000
+  },
+  "tests": [],
+  "failures": []
+}

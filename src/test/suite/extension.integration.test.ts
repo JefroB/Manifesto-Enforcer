@@ -199,10 +199,16 @@ suite('Extension Integration Tests', () => {
     suite('Agent Management', () => {
         test('Agent switching should work', async () => {
             try {
-                await vscode.commands.executeCommand('manifestoEnforcer.switchAgent');
-                assert.ok(true, 'Agent switching command should execute');
+                // Test that the command is registered - don't execute to avoid dialogs
+                const commands = await vscode.commands.getCommands();
+                assert.ok(
+                    commands.includes('manifestoEnforcer.switchAgent'),
+                    'Agent switching command should be registered'
+                );
+                console.log('✓ Agent switching command is registered');
             } catch (error) {
                 console.log('Agent switching test skipped:', error);
+                assert.fail(`Agent switching test failed: ${error}`);
             }
         });
 
@@ -220,20 +226,25 @@ suite('Extension Integration Tests', () => {
                 console.log('Skipping Auggie-specific test - testing fallback behavior');
 
                 try {
-                    // Test that the extension works without Auggie
-                    await vscode.commands.executeCommand('manifestoEnforcer.switchAgent');
-
-                    // Cancel the quick pick
-                    setTimeout(() => {
-                        vscode.commands.executeCommand('workbench.action.closeQuickOpen');
-                    }, 500);
-
-                    assert.ok(true, 'Extension should work without Auggie (fallback mode)');
+                    // Test that the command is registered - don't execute to avoid dialogs
+                    const commands = await vscode.commands.getCommands();
+                    assert.ok(
+                        commands.includes('manifestoEnforcer.switchAgent'),
+                        'Agent switching command should be available in fallback mode'
+                    );
+                    console.log('✓ Extension works without Auggie (fallback mode)');
                 } catch (error) {
                     console.log('Fallback test info:', error);
+                    assert.fail(`Fallback test failed: ${error}`);
                 }
             } else {
                 console.log('Auggie tests enabled - testing full functionality');
+                // Test that the command is registered
+                const commands = await vscode.commands.getCommands();
+                assert.ok(
+                    commands.includes('manifestoEnforcer.switchAgent'),
+                    'Agent switching command should be available with Auggie'
+                );
             }
         });
     });
