@@ -1,8 +1,8 @@
 {
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
-  "description": "🐷 [ALPHA v0.0.73] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.73-alpha",
+  "description": "🐷 [ALPHA v0.0.74] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Old tree views removed, new webview system active. ⚠️ Super early alpha - not user tested!",
+  "version": "0.0.74-alpha",
   "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",
@@ -121,24 +121,19 @@
         "icon": "$(cloud)"
       },
       {
-        "command": "manifestoEnforcer.refreshManifesto",
-        "title": "Refresh Manifesto",
-        "icon": "$(refresh)"
+        "command": "manifestoEnforcer.openCodeActions",
+        "title": "🐷 Open Code Actions",
+        "icon": "$(tools)"
       },
       {
-        "command": "manifestoEnforcer.refreshGlossary",
-        "title": "Refresh Glossary",
-        "icon": "$(refresh)"
+        "command": "manifestoEnforcer.openManifestoManagement",
+        "title": "📋 Open Manifesto Management",
+        "icon": "$(shield)"
       },
       {
-        "command": "manifestoEnforcer.addGlossaryTermFromTree",
-        "title": "Add Term",
-        "icon": "$(add)"
-      },
-      {
-        "command": "manifestoEnforcer.removeGlossaryTerm",
-        "title": "Remove Term",
-        "icon": "$(trash)"
+        "command": "manifestoEnforcer.openGlossaryManagement",
+        "title": "📖 Open Glossary Management",
+        "icon": "$(book)"
       }
     ],
     "viewsContainers": {
@@ -153,57 +148,13 @@
     "views": {
       "manifesto-enforcer": [
         {
-          "id": "manifestoView",
-          "name": "📋 Manifesto"
-        },
-        {
-          "id": "glossaryView",
-          "name": "📖 Glossary"
-        },
-        {
           "id": "piggieChatPanel",
           "name": "💬 Chat with Piggie",
           "type": "webview"
-        },
-        {
-          "id": "piggieActions",
-          "name": "🐷 Piggie Actions"
-        },
-        {
-          "id": "manifestoRules",
-          "name": "🛡️ Manifesto Rules"
-        },
-        {
-          "id": "piggieSecurityReview",
-          "name": "🔒 Security Review"
         }
       ]
     },
     "menus": {
-      "view/title": [
-        {
-          "command": "manifestoEnforcer.refreshManifesto",
-          "when": "view == manifestoView",
-          "group": "navigation"
-        },
-        {
-          "command": "manifestoEnforcer.refreshGlossary",
-          "when": "view == glossaryView",
-          "group": "navigation"
-        },
-        {
-          "command": "manifestoEnforcer.addGlossaryTermFromTree",
-          "when": "view == glossaryView",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "manifestoEnforcer.removeGlossaryTerm",
-          "when": "view == glossaryView && viewItem == term",
-          "group": "inline"
-        }
-      ],
       "editor/context": [
         {
           "command": "manifestoEnforcer.reviewSelectedCode",

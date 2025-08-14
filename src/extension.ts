@@ -2,12 +2,7 @@ import * as vscode from 'vscode';
 import { StateManager } from './core/StateManager';
 import { StorageService } from './core/StorageService';
 import { InteractiveDiffProvider } from './view/InteractiveDiffProvider';
-import { ManifestoTreeDataProvider } from './view/ManifestoTreeDataProvider';
-import { GlossaryTreeDataProvider } from './view/GlossaryTreeDataProvider';
 import { ManifestoDiagnosticsProvider } from './diagnostics/ManifestoDiagnosticsProvider';
-import { PiggieActionsProvider } from './view/PiggieActionsProvider';
-import { SecurityReviewProvider } from './view/SecurityReviewProvider';
-import { ManifestoRulesProvider } from './view/ManifestoRulesProvider';
 import { ManifestoCodeActionProvider } from './diagnostics/ManifestoCodeActionProvider';
 import { ChatCommandManager } from './commands';
 import { AgentManager } from './agents/AgentManager';
@@ -97,20 +92,10 @@ export function activate(context: vscode.ExtensionContext) {
         indexManifesto(stateManager);
         console.log('✅ Manifesto indexed successfully');
 
-        // Initialize providers as local constants (StateManager should only manage data, not service instances)
+        // Initialize remaining providers (keeping only InteractiveDiffProvider for diff functionality)
         console.log('🏗️ Creating providers...');
         const diffProvider = new InteractiveDiffProvider(context, stateManager);
         console.log('✅ InteractiveDiffProvider created');
-        const manifestoTreeProvider = new ManifestoTreeDataProvider(stateManager);
-        console.log('✅ ManifestoTreeDataProvider created');
-        const glossaryTreeProvider = new GlossaryTreeDataProvider(context, stateManager);
-        console.log('✅ GlossaryTreeDataProvider created');
-        const piggieActionsProvider = new PiggieActionsProvider();
-        console.log('✅ PiggieActionsProvider created');
-        const securityReviewProvider = new SecurityReviewProvider();
-        console.log('✅ SecurityReviewProvider created');
-        const manifestoRulesProvider = new ManifestoRulesProvider(stateManager);
-        console.log('✅ ManifestoRulesProvider created');
         const diagnosticsProvider = new ManifestoDiagnosticsProvider(stateManager);
         console.log('✅ ManifestoDiagnosticsProvider created');
         const codeActionProvider = new ManifestoCodeActionProvider(stateManager);
@@ -128,46 +113,9 @@ export function activate(context: vscode.ExtensionContext) {
             console.error('❌ Failed to register chat provider:', error);
         }
 
-        // Providers are now managed locally in activate function scope
-
-        // Register tree data providers with error handling
-        try {
-            context.subscriptions.push(
-                vscode.window.registerTreeDataProvider('manifestoView', manifestoTreeProvider),
-                vscode.window.registerTreeDataProvider('glossaryView', glossaryTreeProvider),
-                vscode.window.registerTreeDataProvider('piggieActions', piggieActionsProvider),
-                vscode.window.registerTreeDataProvider('piggieSecurityReview', securityReviewProvider),
-                vscode.window.registerTreeDataProvider('manifestoRules', manifestoRulesProvider)
-            );
-            console.log('✅ All tree data providers registered successfully');
-        } catch (error) {
-            console.error('❌ Failed to register tree data providers:', error);
-            // Try to register them individually to see which one fails
-            try {
-                context.subscriptions.push(vscode.window.registerTreeDataProvider('manifestoView', manifestoTreeProvider));
-                console.log('✅ manifestoView registered');
-            } catch (e) { console.error('❌ manifestoView failed:', e); }
-
-            try {
-                context.subscriptions.push(vscode.window.registerTreeDataProvider('glossaryView', glossaryTreeProvider));
-                console.log('✅ glossaryView registered');
-            } catch (e) { console.error('❌ glossaryView failed:', e); }
-
-            try {
-                context.subscriptions.push(vscode.window.registerTreeDataProvider('piggieActions', piggieActionsProvider));
-                console.log('✅ piggieActions registered');
-            } catch (e) { console.error('❌ piggieActions failed:', e); }
-
-            try {
-                context.subscriptions.push(vscode.window.registerTreeDataProvider('piggieSecurityReview', securityReviewProvider));
-                console.log('✅ piggieSecurityReview registered');
-            } catch (e) { console.error('❌ piggieSecurityReview failed:', e); }
-
-            try {
-                context.subscriptions.push(vscode.window.registerTreeDataProvider('manifestoRules', manifestoRulesProvider));
-                console.log('✅ manifestoRules registered');
-            } catch (e) { console.error('❌ manifestoRules failed:', e); }
-        }
+        // Tree data providers removed - replaced with modern webview system
+        // Old tree views: manifestoView, glossaryView, piggieActions, piggieSecurityReview, manifestoRules
+        // New webview system: CodeActionsWebview, ManifestoWebview, GlossaryWebview
 
         // Register diagnostic and code action providers
         context.subscriptions.push(
@@ -502,16 +450,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }),
 
-            vscode.commands.registerCommand('manifestoEnforcer.refreshManifesto', () => {
-                // Reload manifesto by re-indexing it
-                indexManifesto(stateManager);
-                vscode.window.showInformationMessage('📋 Manifesto refreshed');
-            }),
 
-            vscode.commands.registerCommand('manifestoEnforcer.refreshGlossary', () => {
-                stateManager.loadGlossaryFromStorage();
-                vscode.window.showInformationMessage('📖 Glossary refreshed');
-            }),
 
             // CRITICAL: TDD Enforcement Commands
             vscode.commands.registerCommand('manifesto-enforcer.validateCommit', async () => {
@@ -610,34 +549,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }),
 
-            vscode.commands.registerCommand('manifestoEnforcer.addGlossaryTermFromTree', async () => {
-                try {
-                    vscode.commands.executeCommand('piggieChatPanel.focus');
-                    provider.showGlossaryPanel();
-                } catch (error) {
-                    vscode.window.showErrorMessage(`Failed to show glossary panel: ${error}`);
-                }
-            }),
 
-            vscode.commands.registerCommand('manifestoEnforcer.removeGlossaryTerm', async () => {
-                try {
-                    const terms = Array.from(stateManager.projectGlossary.keys());
-                    if (terms.length === 0) {
-                        vscode.window.showInformationMessage('No glossary terms to remove');
-                        return;
-                    }
-                    const selected = await vscode.window.showQuickPick(terms, {
-                        placeHolder: 'Select term to remove'
-                    });
-                    if (selected) {
-                        stateManager.projectGlossary.delete(selected);
-                        await stateManager.saveGlossaryToStorage();
-                        vscode.window.showInformationMessage(`Removed term: ${selected}`);
-                    }
-                } catch (error) {
-                    vscode.window.showErrorMessage(`Failed to remove term: ${error}`);
-                }
-            }),
 
             vscode.commands.registerCommand('manifestoEnforcer.executeCodeAction', async (data: { code: string; language: string; fileName: string }) => {
                 try {
