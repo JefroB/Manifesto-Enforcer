@@ -20,6 +20,7 @@ import { PiggieDirectoryManager } from './PiggieDirectoryManager';
 import { GitignoreParser } from './GitignoreParser';
 import { FileLifecycleManager, FileLifecycleOptions, FileLifecycleResult } from './FileLifecycleManager';
 import { ManifestoEngine } from './ManifestoEngine';
+import { StorageService } from './StorageService';
 
 /**
  * Singleton StateManager class that centralizes all extension state
@@ -200,9 +201,11 @@ export class StateManager {
             const manifestoModeValue = config.get<string>('manifestoMode', 'developer');
             this._manifestoMode = this.validateManifestoMode(manifestoModeValue);
 
-            // Load manifesto file paths
-            this._devManifestoPath = config.get<string>('devManifestoPath', 'manifesto-dev.md');
-            this._qaManifestoPath = config.get<string>('qaManifestoPath', 'manifesto-qa.md');
+            // Load manifesto file paths with validation
+            const devPath = config.get<string>('devManifestoPath', 'manifesto-dev.md');
+            const qaPath = config.get<string>('qaManifestoPath', 'manifesto-qa.md');
+            this._devManifestoPath = this.validateManifestoFilePath(devPath);
+            this._qaManifestoPath = this.validateManifestoFilePath(qaPath);
 
             // Load default mode setting
             const defaultMode = config.get<string>('defaultMode', 'chat');
@@ -295,7 +298,7 @@ export class StateManager {
      */
     public get devManifestoPath(): string { return this._devManifestoPath; }
     public set devManifestoPath(value: string) {
-        this._devManifestoPath = value;
+        this._devManifestoPath = this.validateManifestoFilePath(value);
         this.saveSettings().catch(console.error);
     }
 
@@ -304,7 +307,7 @@ export class StateManager {
      */
     public get qaManifestoPath(): string { return this._qaManifestoPath; }
     public set qaManifestoPath(value: string) {
-        this._qaManifestoPath = value;
+        this._qaManifestoPath = this.validateManifestoFilePath(value);
         this.saveSettings().catch(console.error);
     }
 
@@ -535,12 +538,26 @@ export class StateManager {
      */
     public async loadGlossaryFromStorage(): Promise<boolean> {
         try {
-            const savedGlossary = this.context.workspaceState.get('projectGlossary');
-            if (savedGlossary) {
-                this._projectGlossary = new Map(Object.entries(savedGlossary));
-                console.log('📖 Restored glossary from previous session');
-                return true;
+            const storageService = StorageService.getInstance();
+            const glossaryPath = await storageService.getProjectArtifactsPath('glossary.json');
+
+            // Check if file exists
+            const glossaryUri = vscode.Uri.file(glossaryPath);
+            try {
+                const fileContent = await vscode.workspace.fs.readFile(glossaryUri);
+                const glossaryText = Buffer.from(fileContent).toString('utf8');
+                const savedGlossary = JSON.parse(glossaryText);
+
+                if (savedGlossary && typeof savedGlossary === 'object') {
+                    this._projectGlossary = new Map(Object.entries(savedGlossary));
+                    console.log('📖 Restored glossary from previous session');
+                    return true;
+                }
+            } catch (fileError) {
+                // File doesn't exist or can't be read - this is normal for new projects
+                console.log('📖 No existing glossary file found - starting fresh');
             }
+
             return false;
         } catch (error) {
             console.error('Failed to load glossary:', error);
@@ -554,8 +571,16 @@ export class StateManager {
      */
     public async saveGlossaryToStorage(): Promise<void> {
         try {
+            const storageService = StorageService.getInstance();
+            const glossaryPath = await storageService.getProjectArtifactsPath('glossary.json');
+
             const glossaryObj = Object.fromEntries(this._projectGlossary);
-            await this.context.workspaceState.update('projectGlossary', glossaryObj);
+            const glossaryContent = JSON.stringify(glossaryObj, null, 2);
+
+            // Write to file using VS Code's file system API
+            const glossaryUri = vscode.Uri.file(glossaryPath);
+            await vscode.workspace.fs.writeFile(glossaryUri, Buffer.from(glossaryContent, 'utf8'));
+
             console.log('📖 Glossary saved to storage');
         } catch (error) {
             console.error('Failed to save glossary:', error);
@@ -1059,8 +1084,41 @@ export class StateManager {
         if (validModes.includes(value as any)) {
             return value as 'developer' | 'qa' | 'solo';
         }
-        console.warn(`Invalid manifesto mode: ${value}, defaulting to 'developer'`);
-        return 'developer';
+        throw new Error('Invalid manifesto mode');
+    }
+
+    /**
+     * Validate manifesto file path
+     * MANDATORY: Input validation (manifesto requirement)
+     */
+    private validateManifestoFilePath(path: string): string {
+        // Input validation
+        if (!path || typeof path !== 'string') {
+            throw new Error('Manifesto file path cannot be empty');
+        }
+
+        // Trim whitespace
+        const trimmedPath = path.trim();
+        if (!trimmedPath) {
+            throw new Error('Manifesto file path cannot be empty');
+        }
+
+        // Check for XSS attempts
+        if (trimmedPath.includes('<script>') || trimmedPath.includes('</script>')) {
+            throw new Error('Invalid characters in manifesto file path');
+        }
+
+        // Check for path traversal attempts
+        if (trimmedPath.includes('../') || trimmedPath.includes('..\\')) {
+            throw new Error('Path traversal not allowed in manifesto file path');
+        }
+
+        // Validate file extension
+        if (!trimmedPath.endsWith('.md')) {
+            throw new Error('Manifesto file must have .md extension');
+        }
+
+        return trimmedPath;
     }
 
     /**

@@ -328,16 +328,82 @@ describe('ManifestoCommand Integration', () => {
         it('should handle execution errors gracefully', async () => {
             // Force an error by providing invalid input
             const input = 'generate manifesto';
-            
+
             // Mock a method to throw an error
             jest.spyOn(manifestoCommand as any, 'generateManifestoFileContent').mockImplementation(() => {
                 throw new Error('Test error');
             });
-            
+
             const result = await manifestoCommand.execute(input, mockStateManager, mockAgentManager);
-            
+
             expect(result).toContain('❌ Failed to generate manifesto');
             expect(result).toContain('Test error');
+        });
+    });
+
+    describe('StorageService Integration', () => {
+        it('should use StorageService for manifesto file path instead of workspace root', async () => {
+            try {
+                // This test will fail because we haven't refactored manifesto creation to use StorageService yet
+                const input = 'generate manifesto';
+
+                // Mock StorageService
+                const mockGetProjectArtifactsPath = jest.fn().mockResolvedValue('/global/storage/projects/testhash/manifesto.md');
+                const storageServiceSpy = jest.spyOn(require('../../core/StorageService').StorageService, 'getInstance').mockReturnValue({
+                    getProjectArtifactsPath: mockGetProjectArtifactsPath
+                });
+
+                // Execute the command to generate manifesto content
+                const result = await manifestoCommand.execute(input, mockStateManager, mockAgentManager);
+
+                // Verify the command generates content (this should work)
+                expect(result).toContain('📋 **General Manifesto Template**');
+
+                // Now test the actual file creation through AutoModeManager
+                const autoModeManager = new (require('../../core/AutoModeManager').AutoModeManager)(mockStateManager);
+
+                // Mock the action data that would be created by the UI
+                const action = {
+                    command: 'createManifesto',
+                    data: {
+                        content: 'Test manifesto content',
+                        type: 'General',
+                        forceOverwrite: false,
+                        createBackup: false
+                    }
+                };
+
+                // Mock the file manager to return success so we can test the path usage
+                const mockFileManager = {
+                    fileExists: jest.fn().mockResolvedValue(false),
+                    writeCodeToFile: jest.fn().mockResolvedValue({
+                        success: true,
+                        path: '/global/storage/projects/testhash/manifesto.md',
+                        message: 'File created successfully'
+                    })
+                };
+                (autoModeManager as any).fileManager = mockFileManager;
+
+                // This should use StorageService.getProjectArtifactsPath instead of hardcoded 'manifesto.md'
+                const actionResult = await autoModeManager.executeAction(action, mockAgentManager);
+
+                // Verify StorageService was used for getting the file path
+                expect(storageServiceSpy).toHaveBeenCalled();
+                expect(mockGetProjectArtifactsPath).toHaveBeenCalledWith('manifesto.md');
+
+                // Verify the file operation was called with the correct path from StorageService
+                expect(mockFileManager.writeCodeToFile).toHaveBeenCalledWith({
+                    path: '/global/storage/projects/testhash/manifesto.md',
+                    content: 'Test manifesto content',
+                    type: 'create',
+                    backup: false
+                });
+
+                // Verify the action was successful
+                expect(actionResult).toContain('✅ **General Manifesto Created Successfully!**');
+            } catch (error) {
+                throw error;
+            }
         });
     });
 });

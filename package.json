@@ -302,6 +302,18 @@
           "default": 5000,
           "description": "Timeout for agent connections (milliseconds)"
         },
+        "manifestoEnforcer.testConnectionButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Test Connection button in settings",
+          "scope": "application"
+        },
+        "manifestoEnforcer.discoverAPIsButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Discover APIs button in settings",
+          "scope": "application"
+        },
         "manifestoEnforcer.defaultMode": {
           "type": "string",
           "default": "chat",
@@ -312,9 +324,29 @@
           "description": "Default mode for Piggie: 'chat' for explanations only, 'agent' for performing actions"
         },
         "manifestoEnforcer.manifestoMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable manifesto mode for compliance checking"
+          "type": "string",
+          "default": "developer",
+          "enum": [
+            "developer",
+            "qa",
+            "solo"
+          ],
+          "enumDescriptions": [
+            "Developer mode - uses manifesto-dev.md",
+            "QA mode - uses manifesto-qa.md",
+            "Solo Dev mode - merges both manifestos"
+          ],
+          "description": "Manifesto enforcement mode"
+        },
+        "manifestoEnforcer.devManifestoPath": {
+          "type": "string",
+          "default": "manifesto-dev.md",
+          "description": "Path to developer manifesto file"
+        },
+        "manifestoEnforcer.qaManifestoPath": {
+          "type": "string",
+          "default": "manifesto-qa.md",
+          "description": "Path to QA manifesto file"
         },
         "manifestoEnforcer.autoMode": {
           "type": "boolean",

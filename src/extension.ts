@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { StateManager } from './core/StateManager';
+import { StorageService } from './core/StorageService';
 import { InteractiveDiffProvider } from './view/InteractiveDiffProvider';
 import { ManifestoTreeDataProvider } from './view/ManifestoTreeDataProvider';
 import { GlossaryTreeDataProvider } from './view/GlossaryTreeDataProvider';
@@ -74,7 +75,12 @@ export function activate(context: vscode.ExtensionContext) {
         console.log('📁 Extension path:', context.extensionPath);
         console.log('🔧 VSCode version:', vscode.version);
 
-        // Initialize StateManager singleton first
+        // Initialize StorageService first
+        console.log('🏗️ Initializing StorageService...');
+        StorageService.initialize(context);
+        console.log('✅ StorageService initialized successfully');
+
+        // Initialize StateManager singleton
         console.log('🏗️ Initializing StateManager...');
         const stateManager = StateManager.getInstance(context);
         console.log('✅ StateManager initialized successfully');

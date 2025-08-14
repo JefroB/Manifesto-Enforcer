@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as ts from 'typescript';
 import { StateManager } from '../core/StateManager';
+import { LanguageService } from '../core/LanguageService';
 
 /**
  * Provides real-time manifesto compliance diagnostics using AST-based analysis
@@ -352,13 +353,26 @@ export class ManifestoDiagnosticsProvider {
     }
 
     /**
-     * Check if document should be analyzed
+     * Check if document should be analyzed using LanguageService
      */
     private shouldAnalyzeDocument(document: vscode.TextDocument): boolean {
-        // Only analyze code files
-        const codeExtensions = ['.ts', '.js', '.tsx', '.jsx'];
-        const extension = document.fileName.substring(document.fileName.lastIndexOf('.'));
-        return codeExtensions.includes(extension) && document.uri.scheme === 'file';
+        if (document.uri.scheme !== 'file') {
+            return false;
+        }
+
+        // Use LanguageService to determine if this is a supported code file
+        const languageService = LanguageService.getInstance();
+        const extension = document.fileName.substring(document.fileName.lastIndexOf('.') + 1);
+
+        // Check if any language supports this file extension
+        for (const langName of languageService.getAllLanguages()) {
+            const extensions = languageService.getFileExtensions(langName);
+            if (extensions.includes(extension)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

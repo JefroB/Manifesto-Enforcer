@@ -3,6 +3,7 @@ import * as path from 'path';
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
 import { AgentManager } from '../agents/AgentManager';
+import { LanguageService } from '../core/LanguageService';
 
 /**
  * Advanced TDD Code Generation Command with Conditional UI Testing
@@ -251,28 +252,57 @@ export class TddCodeGenerationCommand implements IChatCommand {
     }
 
     /**
-     * Detect tech stack from codebase index
+     * Detect tech stack from codebase index using package.json and LanguageService fallback
      */
     private detectTechStack(stateManager: StateManager): string | null {
         try {
+            // Primary detection: package.json dependencies
             const packageJsonFile = stateManager.codebaseIndex.get('package.json');
-            if (!packageJsonFile || !packageJsonFile.content) {
-                return null;
+            if (packageJsonFile && packageJsonFile.content) {
+                const packageJson = JSON.parse(packageJsonFile.content);
+                const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+                // Check for specific frameworks/libraries
+                if (dependencies.react) return 'React';
+                if (dependencies.vue) return 'Vue.js';
+                if (dependencies.angular || dependencies['@angular/core']) return 'Angular';
+                if (dependencies.express) return 'Node.js';
+                if (dependencies.next) return 'Next.js';
+                if (dependencies.svelte) return 'Svelte';
+
+                // Default to Node.js if package.json exists
+                return 'Node.js';
             }
 
-            const packageJson = JSON.parse(packageJsonFile.content);
-            const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+            // Fallback: Use LanguageService to analyze file extensions and content
+            const languageService = LanguageService.getInstance();
+            const fileExtensions = new Map<string, number>();
 
-            // Check for specific frameworks/libraries
-            if (dependencies.react) return 'React';
-            if (dependencies.vue) return 'Vue';
-            if (dependencies.angular || dependencies['@angular/core']) return 'Angular';
-            if (dependencies.express) return 'Node.js';
-            if (dependencies.next) return 'Next.js';
-            if (dependencies.svelte) return 'Svelte';
+            // Count file extensions in the codebase
+            for (const [filePath] of stateManager.codebaseIndex) {
+                const ext = filePath.split('.').pop()?.toLowerCase();
+                if (ext) {
+                    fileExtensions.set(ext, (fileExtensions.get(ext) || 0) + 1);
+                }
+            }
 
-            // Default to Node.js if package.json exists
-            return 'Node.js';
+            // Find the most common language based on file extensions
+            let mostCommonLanguage = null;
+            let maxCount = 0;
+
+            for (const langName of languageService.getAllLanguages()) {
+                const extensions = languageService.getFileExtensions(langName);
+                let count = 0;
+                for (const ext of extensions) {
+                    count += fileExtensions.get(ext) || 0;
+                }
+                if (count > maxCount) {
+                    maxCount = count;
+                    mostCommonLanguage = langName;
+                }
+            }
+
+            return mostCommonLanguage;
 
         } catch (error) {
             console.error('Tech stack detection failed:', error);

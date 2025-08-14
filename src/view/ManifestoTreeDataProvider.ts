@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { StateManager } from '../core/StateManager';
+import { StorageService } from '../core/StorageService';
 
 /**
  * Tree data provider for the Manifesto sidebar view
@@ -80,13 +81,21 @@ export class ManifestoTreeDataProvider implements vscode.TreeDataProvider<Manife
                 return;
             }
 
-            // Look for manifesto files
-            const manifestoFiles = await vscode.workspace.findFiles(
-                '**/*{manifesto,standards,guidelines,rules}*.{md,txt}',
-                '**/node_modules/**'
-            );
+            // Get manifesto path from StorageService
+            const storageService = StorageService.getInstance();
+            const manifestoPath = await storageService.getProjectArtifactsPath('manifesto.md');
 
-            if (manifestoFiles.length === 0) {
+            // Check if manifesto file exists
+            const manifestoUri = vscode.Uri.file(manifestoPath);
+            try {
+                const document = await vscode.workspace.openTextDocument(manifestoUri);
+                this.manifestoContent = document.getText();
+
+                // Parse the manifesto content
+                this.parseManifestoContent();
+
+            } catch (fileError) {
+                // File doesn't exist - show "no manifesto found" message
                 this.manifestoSections = [{
                     title: 'No Manifesto Found',
                     content: 'Create a manifesto.md file to get started',
@@ -97,14 +106,6 @@ export class ManifestoTreeDataProvider implements vscode.TreeDataProvider<Manife
                 }];
                 return;
             }
-
-            // Read the first manifesto file
-            const manifestoFile = manifestoFiles[0];
-            const document = await vscode.workspace.openTextDocument(manifestoFile);
-            this.manifestoContent = document.getText();
-            
-            // Parse the manifesto content
-            this.parseManifestoContent();
 
         } catch (error) {
             console.error('Failed to load manifesto:', error);

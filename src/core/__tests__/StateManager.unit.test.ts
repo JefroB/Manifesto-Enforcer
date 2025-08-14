@@ -6,6 +6,20 @@
 import { StateManager } from '../StateManager';
 import { ChatMessage, ManifestoRule, RuleCategory, RuleSeverity } from '../types';
 
+// Mock VSCode API
+jest.mock('vscode', () => ({
+    workspace: {
+        openTextDocument: jest.fn(),
+        fs: {
+            writeFile: jest.fn(),
+            readFile: jest.fn()
+        }
+    },
+    Uri: {
+        file: jest.fn((path: string) => ({ fsPath: path }))
+    }
+}));
+
 // Create a minimal mock for testing
 const createMockStateManager = (): any => {
     const mockContext = {
@@ -289,7 +303,17 @@ describe('StateManager Unit Tests', () => {
             try {
                 const manager = createMockStateManager();
                 const mockGlossary = { 'term1': { term: 'term1', definition: 'def1', category: 'general' } };
-                manager.context.workspaceState.get.mockReturnValue(mockGlossary);
+
+                // Mock StorageService for glossary loading
+                const mockStorageService = {
+                    getProjectArtifactsPath: jest.fn().mockResolvedValue('/mock/path/glossary.json')
+                };
+                jest.spyOn(require('../../core/StorageService').StorageService, 'getInstance').mockReturnValue(mockStorageService);
+
+                // Mock vscode.workspace.fs.readFile to return glossary content
+                const mockVscode = require('vscode');
+                const glossaryBuffer = Buffer.from(JSON.stringify(mockGlossary), 'utf8');
+                mockVscode.workspace.fs.readFile.mockResolvedValue(glossaryBuffer);
 
                 const result = await manager.loadGlossaryFromStorage();
                 expect(result).toBe(true);
@@ -302,7 +326,16 @@ describe('StateManager Unit Tests', () => {
         it('should return false when no glossary in storage', async () => {
             try {
                 const manager = createMockStateManager();
-                manager.context.workspaceState.get.mockReturnValue(null);
+
+                // Mock StorageService for glossary loading
+                const mockStorageService = {
+                    getProjectArtifactsPath: jest.fn().mockResolvedValue('/mock/path/glossary.json')
+                };
+                jest.spyOn(require('../../core/StorageService').StorageService, 'getInstance').mockReturnValue(mockStorageService);
+
+                // Mock vscode.workspace.fs.readFile to throw an error (file not found)
+                const mockVscode = require('vscode');
+                mockVscode.workspace.fs.readFile.mockRejectedValue(new Error('File not found'));
 
                 const result = await manager.loadGlossaryFromStorage();
                 expect(result).toBe(false);
@@ -314,9 +347,12 @@ describe('StateManager Unit Tests', () => {
         it('should handle glossary load errors gracefully', async () => {
             try {
                 const manager = createMockStateManager();
-                manager.context.workspaceState.get.mockImplementation(() => {
-                    throw new Error('Storage error');
-                });
+
+                // Mock StorageService to throw an error
+                const mockStorageService = {
+                    getProjectArtifactsPath: jest.fn().mockRejectedValue(new Error('Storage error'))
+                };
+                jest.spyOn(require('../../core/StorageService').StorageService, 'getInstance').mockReturnValue(mockStorageService);
 
                 const result = await manager.loadGlossaryFromStorage();
                 expect(result).toBe(false);
@@ -330,8 +366,61 @@ describe('StateManager Unit Tests', () => {
                 const manager = createMockStateManager();
                 manager._projectGlossary.set('term1', { term: 'term1', definition: 'def1', category: 'general' });
 
+                // Mock StorageService for glossary saving
+                const mockStorageService = {
+                    getProjectArtifactsPath: jest.fn().mockResolvedValue('/mock/path/glossary.json')
+                };
+                jest.spyOn(require('../../core/StorageService').StorageService, 'getInstance').mockReturnValue(mockStorageService);
+
+                // Mock vscode.workspace.fs.writeFile
+                const mockVscode = require('vscode');
+                mockVscode.workspace.fs.writeFile.mockResolvedValue(undefined);
+
                 await expect(manager.saveGlossaryToStorage()).resolves.toBeUndefined();
-                expect(manager.context.workspaceState.update).toHaveBeenCalled();
+                expect(mockStorageService.getProjectArtifactsPath).toHaveBeenCalledWith('glossary.json');
+            } catch (error) {
+                throw error;
+            }
+        });
+
+        it('should use StorageService for glossary file path instead of workspaceState', async () => {
+            try {
+                // This test will fail because we haven't refactored to use StorageService yet
+                const manager = createMockStateManager();
+
+                // Add a term to save
+                manager._projectGlossary.set('term1', { term: 'term1', definition: 'def1', category: 'general' });
+
+                // Mock the StorageService methods that should be called
+                const mockGetProjectArtifactsPath = jest.fn().mockResolvedValue('/global/storage/projects/testhash/glossary.json');
+                const mockWriteFile = jest.fn().mockResolvedValue(undefined);
+
+                // Spy on the methods that should be called in the new implementation
+                const storageServiceSpy = jest.spyOn(require('../StorageService').StorageService, 'getInstance').mockReturnValue({
+                    getProjectArtifactsPath: mockGetProjectArtifactsPath
+                });
+
+                // Mock vscode.workspace.fs and vscode.Uri for this test
+                const vscode = require('vscode');
+                vscode.workspace.fs = {
+                    writeFile: mockWriteFile
+                };
+                vscode.Uri = {
+                    file: jest.fn((path: string) => ({ fsPath: path }))
+                };
+
+                // This should use StorageService.getProjectArtifactsPath and vscode.workspace.fs.writeFile
+                // instead of context.workspaceState.update
+                await manager.saveGlossaryToStorage();
+
+                // Verify StorageService was used (this will fail until we refactor)
+                expect(storageServiceSpy).toHaveBeenCalled();
+                expect(mockGetProjectArtifactsPath).toHaveBeenCalledWith('glossary.json');
+                expect(mockWriteFile).toHaveBeenCalled();
+
+                // Verify workspaceState.update was NOT called (old behavior should be replaced)
+                expect(manager.context.workspaceState.update).not.toHaveBeenCalled();
+
             } catch (error) {
                 throw error;
             }
@@ -340,7 +429,12 @@ describe('StateManager Unit Tests', () => {
         it('should handle glossary save errors', async () => {
             try {
                 const manager = createMockStateManager();
-                manager.context.workspaceState.update.mockRejectedValue(new Error('Save failed'));
+
+                // Mock StorageService to throw an error
+                const mockStorageService = {
+                    getProjectArtifactsPath: jest.fn().mockRejectedValue(new Error('Save failed'))
+                };
+                jest.spyOn(require('../../core/StorageService').StorageService, 'getInstance').mockReturnValue(mockStorageService);
 
                 await expect(manager.saveGlossaryToStorage()).rejects.toThrow('Glossary save failed: Save failed');
             } catch (error) {
