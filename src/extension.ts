@@ -19,6 +19,7 @@ import { ClineAdapter } from './agents/adapters/ClineAdapter';
 import { OllamaAdapter } from './agents/adapters/OllamaAdapter';
 import { AgentConfig, AgentProvider, RuleSeverity, RuleCategory } from './core/types';
 import { ManifestoEngine } from './core/ManifestoEngine';
+import { WebviewManager } from './webviews/WebviewManager';
 
 /**
  * Index manifesto rules for efficient token usage
@@ -116,6 +117,21 @@ export function activate(context: vscode.ExtensionContext) {
 
         // CRITICAL: Set diagnostics provider in StateManager for enforcement commands
         stateManager.diagnosticsProvider = diagnosticsProvider;
+
+        // Register chat provider with context for persistence
+        const provider = new PiggieChatProvider(context.extensionUri, context, stateManager);
+        try {
+            context.subscriptions.push(
+                vscode.window.registerWebviewViewProvider('piggieChatPanel', provider)
+            );
+        } catch (error) {
+            console.error('❌ Failed to register chat provider:', error);
+        }
+
+        // Initialize WebviewManager for new webview system (after provider creation)
+        console.log('🏗️ Creating WebviewManager...');
+        const webviewManager = new WebviewManager(context, stateManager, provider.getAgentManager());
+        console.log('✅ WebviewManager created');
 
         // Providers are now managed locally in activate function scope
 
@@ -215,18 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
             })
         );
 
-        // Register chat provider with context for persistence
-        const provider = new PiggieChatProvider(context.extensionUri, context, stateManager);
-        try {
-            context.subscriptions.push(
-                vscode.window.registerWebviewViewProvider('piggieChatPanel', provider)
-            );
-        } catch (error) {
-            console.warn('⚠️ Chat provider registration failed (may already be registered):', error);
-            // Continue activation even if chat provider fails
-        }
-
-        // Add provider to subscriptions for proper disposal
+        // Add provider to subscriptions for proper disposal (provider created earlier)
         context.subscriptions.push({
             dispose: () => provider.dispose()
         });
@@ -236,6 +241,37 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.registerCommand('manifestoEnforcer.toggleManifestoMode', () => {
                 stateManager.isManifestoMode = !stateManager.isManifestoMode;
                 vscode.window.showInformationMessage(`🛡️ Manifesto Mode: ${stateManager.isManifestoMode ? 'ON' : 'OFF'}`);
+
+                // Notify webviews of mode change
+                webviewManager.onManifestoModeChanged();
+            }),
+
+            // New Webview Commands (TDD Implementation)
+            vscode.commands.registerCommand('manifestoEnforcer.openCodeActions', async () => {
+                try {
+                    await webviewManager.openCodeActions();
+                } catch (error) {
+                    console.error('Failed to open Code Actions webview:', error);
+                    vscode.window.showErrorMessage('Failed to open Code Actions panel');
+                }
+            }),
+
+            vscode.commands.registerCommand('manifestoEnforcer.openManifestoManagement', async () => {
+                try {
+                    await webviewManager.openManifestoManagement();
+                } catch (error) {
+                    console.error('Failed to open Manifesto Management webview:', error);
+                    vscode.window.showErrorMessage('Failed to open Manifesto Management panel');
+                }
+            }),
+
+            vscode.commands.registerCommand('manifestoEnforcer.openGlossaryManagement', async () => {
+                try {
+                    await webviewManager.openGlossaryManagement();
+                } catch (error) {
+                    console.error('Failed to open Glossary Management webview:', error);
+                    vscode.window.showErrorMessage('Failed to open Glossary Management panel');
+                }
             }),
 
             vscode.commands.registerCommand('manifestoEnforcer.switchAgent', async (agentName?: string) => {
@@ -255,6 +291,9 @@ export function activate(context: vscode.ExtensionContext) {
 
                     stateManager.currentAgent = agentName;
                     console.log(`🐷 Piggie switched to: ${agentName}`);
+
+                    // Notify webviews of agent change
+                    webviewManager.onAgentSwitched(agentName);
 
                     // Only show message if called programmatically (not from UI)
                     vscode.window.showInformationMessage(`🐷 Piggie is now using: ${agentName}`);
@@ -764,6 +803,14 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
         this.commandManager = new ChatCommandManager();
         this.agentManager = new AgentManager();
         // Don't initialize agents in constructor - do it lazily when needed
+    }
+
+    /**
+     * Get the AgentManager instance
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public getAgentManager(): AgentManager {
+        return this.agentManager;
     }
 
     private async initializeAgents(): Promise<void> {
@@ -1643,3 +1690,5 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
         }
     }
 }
+
+

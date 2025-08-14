@@ -634,6 +634,20 @@ export class ManifestoWebview {
     }
 
     /**
+     * Refresh webview content
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public refreshContent(): void {
+        try {
+            if (this.panel) {
+                this.panel.webview.html = this.getHtmlContent();
+            }
+        } catch (error) {
+            console.error('Failed to refresh webview content:', error);
+        }
+    }
+
+    /**
      * Dispose of the webview
      * MANDATORY: Comprehensive error handling (manifesto requirement)
      */
