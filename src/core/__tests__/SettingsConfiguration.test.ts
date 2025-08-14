@@ -132,77 +132,14 @@ describe('Settings Configuration - Phase 1', () => {
  * Test suite for Admin Commands Settings Integration
  * Tests moving admin commands to settings panel
  */
-describe('Admin Commands Settings Integration', () => {
-    let mockCommands: any;
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-        
-        mockCommands = {
-            executeCommand: jest.fn(),
-            registerCommand: jest.fn()
-        };
-        
-        (vscode.commands as any) = mockCommands;
-    });
-
-    describe('Test Connection Command', () => {
-        it('should be accessible from settings panel', async () => {
-            // This test will fail initially - settings panel integration doesn't exist
-            const testConnectionHandler = jest.fn();
-            
-            // Should register command for settings panel access
-            expect(mockCommands.registerCommand).toHaveBeenCalledWith(
-                'manifestoEnforcer.settings.testConnection',
-                expect.any(Function)
-            );
-        });
-
-        it('should provide connection test results in settings UI', async () => {
-            // This test will fail initially - settings UI doesn't exist
-            const connectionResult = await mockCommands.executeCommand('manifestoEnforcer.settings.testConnection');
-            
-            expect(connectionResult).toHaveProperty('success');
-            expect(connectionResult).toHaveProperty('message');
-            expect(connectionResult).toHaveProperty('agentStatus');
-        });
-    });
-
-    describe('Discover APIs Command', () => {
-        it('should be accessible from settings panel', async () => {
-            // This test will fail initially - settings panel integration doesn't exist
-            const discoverAPIsHandler = jest.fn();
-            
-            expect(mockCommands.registerCommand).toHaveBeenCalledWith(
-                'manifestoEnforcer.settings.discoverAPIs',
-                expect.any(Function)
-            );
-        });
-
-        it('should provide API discovery results in settings UI', async () => {
-            // This test will fail initially - settings UI doesn't exist
-            const discoveryResult = await mockCommands.executeCommand('manifestoEnforcer.settings.discoverAPIs');
-            
-            expect(discoveryResult).toHaveProperty('apis');
-            expect(discoveryResult).toHaveProperty('recommendations');
-        });
-    });
-
-    describe('Settings UI Integration', () => {
-        it('should remove admin commands from main UI components', () => {
-            // This test will fail initially - commands still exist in main UI
-            const mainUICommands = [
-                'manifestoEnforcer.testConnection',
-                'piggie.discoverAPIs'
-            ];
-            
-            // These commands should no longer be in main UI after Phase 1
-            mainUICommands.forEach(command => {
-                expect(mockCommands.registerCommand).not.toHaveBeenCalledWith(
-                    command,
-                    expect.any(Function)
-                );
-            });
-        });
-    });
-});
+/**
+ * Admin Commands Settings Integration - Moved to Mocha Tests
+ *
+ * The admin commands integration tests have been moved to:
+ * src/core/__tests__/SettingsConfiguration.mocha.test.ts
+ *
+ * This uses the VSCode Extension Testing Framework for real VSCode API integration
+ * rather than mocked Jest tests which can't properly test VSCode command registration.
+ *
+ * Run with: npm run test:mocha
+ */

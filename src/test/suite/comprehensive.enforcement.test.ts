@@ -43,7 +43,7 @@ suite('Comprehensive Enforcement Tests', () => {
                 'manifestoEnforcer.validateCompliance',
                 'manifestoEnforcer.createManifesto',
                 'manifestoEnforcer.openSettings',
-                'manifestoEnforcer.testConnection'
+                'manifestoEnforcer.settings.testConnection'
             ];
 
             for (const command of requiredCommands) {

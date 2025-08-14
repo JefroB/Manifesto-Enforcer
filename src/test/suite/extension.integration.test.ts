@@ -56,7 +56,7 @@ suite('Extension Integration Tests', () => {
                 'manifestoEnforcer.validateCompliance',
                 'manifestoEnforcer.createManifesto',
                 'manifestoEnforcer.openSettings',
-                'manifestoEnforcer.testConnection',
+                'manifestoEnforcer.settings.testConnection',
                 'manifestoEnforcer.reviewSelectedCode',
                 'manifestoEnforcer.refactorSelectedCode',
                 'manifestoEnforcer.explainSelectedCode',

@@ -1,5 +1,5 @@
 {
-    "manifestoEnforcer.manifestoMode": true,
+    "manifestoEnforcer.manifestoMode": "developer",
     "manifestoEnforcer.defaultMode": "chat",
     "manifestoEnforcer.autoMode": false,
     "manifestoEnforcer.isTddMode": false,
@@ -9,5 +9,7 @@
     "manifestoEnforcer.uiTestFramework": "",
     "manifestoEnforcer.fontSize": "medium",
     "manifestoEnforcer.showEmojis": true,
-    "manifestoEnforcer.currentAgent": "cline"
+    "manifestoEnforcer.currentAgent": "cline",
+    "manifestoEnforcer.devManifestoPath": "manifesto-dev.md",
+    "manifestoEnforcer.qaManifestoPath": "manifesto-qa.md"
 }
