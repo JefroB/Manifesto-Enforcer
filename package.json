@@ -2,7 +2,7 @@
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
   "description": "🐷 [ALPHA v0.0.1] Meet Piggie! Your compliance-enforcing AI coding assistant. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.7-alpha",
+  "version": "0.0.71-alpha",
   "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",
@@ -286,12 +286,12 @@
         "manifestoEnforcer.manifestoMode": {
           "type": "boolean",
           "default": true,
-          "description": "Enable manifesto compliance enforcement"
+          "description": "Enable manifesto mode for compliance checking"
         },
         "manifestoEnforcer.autoMode": {
           "type": "boolean",
           "default": false,
-          "description": "Enable automatic code execution without confirmation"
+          "description": "Auto mode: automatically execute commands without confirmation (default: false for safety)"
         },
         "manifestoEnforcer.isTddMode": {
           "type": "boolean",
@@ -318,11 +318,6 @@
           "default": "",
           "description": "UI test framework for TDD mode (auto-detected or manually set)"
         },
-        "manifestoEnforcer.autoMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Auto mode: automatically execute commands without confirmation (default: false for safety)"
-        },
         "manifestoEnforcer.fontSize": {
           "type": "string",
           "default": "medium",
@@ -337,11 +332,6 @@
           "type": "boolean",
           "default": true,
           "description": "Show emojis in chat responses (default: true)"
-        },
-        "manifestoEnforcer.manifestoMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable manifesto mode for compliance checking"
         },
         "manifestoEnforcer.currentAgent": {
           "type": "string",
@@ -366,23 +356,32 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "jest",
+    "test": "node scripts/run-all-tests.js --skip-auggie",
+    "test:coverage": "node scripts/run-all-tests.js --coverage --skip-auggie",
+    "test:with-auggie": "node scripts/run-all-tests.js --with-auggie",
+    "test:jest": "node scripts/run-all-tests.js --jest-only",
+    "test:jest:coverage": "node scripts/run-all-tests.js --jest-only --coverage",
+    "test:mocha": "node scripts/run-all-tests.js --mocha-only --skip-auggie",
+    "test:mocha:with-auggie": "node scripts/run-all-tests.js --mocha-only --with-auggie",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
     "test:integration": "npm run compile:vscode-test && node ./out/test/runTest.js",
     "test:integration:no-auggie": "npm run compile:vscode-test && cross-env SKIP_AUGGIE_TESTS=true node ./out/test/runTest.js",
-    "test:all": "npm run test && npm run test:integration:no-auggie",
+    "test:all": "node scripts/run-all-tests.js --skip-auggie",
+    "test:all:coverage": "node scripts/run-all-tests.js --coverage --skip-auggie",
+    "test:all:with-auggie": "node scripts/run-all-tests.js --with-auggie",
     "test:fallback": "node test-with-fallback.js",
     "test:fallback:jest-only": "node test-with-fallback.js --jest-only",
     "test:fallback:coverage": "node test-with-fallback.js --coverage",
     "test:jest-safe": "node test-jest-only.js",
-    "test:jest-safe:coverage": "node test-jest-only.js --coverage"
+    "test:jest-safe:coverage": "node test-jest-only.js --coverage",
+    "test:report": "node scripts/generate-html-report.js"
   },
   "devDependencies": {
     "@types/glob": "^7.2.0",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
     "@types/node": "18.x",
+    "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
@@ -392,6 +391,7 @@
     "glob": "^11.0.3",
     "jest": "^29.5.0",
     "mocha": "^11.7.1",
+    "sinon": "^21.0.0",
     "ts-jest": "^29.1.0"
   },
   "dependencies": {

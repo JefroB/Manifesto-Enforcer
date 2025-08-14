@@ -91,8 +91,9 @@ describe('TddCodeGenerationCommand', () => {
                     .mockResolvedValueOnce({ content: 'test("button component", () => { expect(Button).toBeDefined(); });' })
                     .mockResolvedValueOnce({ content: 'const Button = () => <button>Click me</button>; export default Button;' });
 
-                // Mock file operations
-                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue('/mock/path/file.js');
+                // Mock file operations - now returns vscode.Uri instead of string
+                const mockUri = { fsPath: '/mock/path/file.js' } as any;
+                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue(mockUri);
 
                 // Mock test execution to pass after implementation
                 jest.spyOn(command as any, 'runTests')
@@ -153,8 +154,9 @@ describe('TddCodeGenerationCommand', () => {
                     .mockResolvedValueOnce({ content: 'test("button component", () => { expect(Button).toBeDefined(); });' })
                     .mockResolvedValueOnce({ content: 'const Button = () => <button>Click me</button>; export default Button;' });
 
-                // Mock file operations
-                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue('/mock/path/file.js');
+                // Mock file operations - now returns vscode.Uri instead of string
+                const mockUri = { fsPath: '/mock/path/file.js' } as any;
+                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue(mockUri);
 
                 // Mock test execution to pass after implementation
                 jest.spyOn(command as any, 'runTests')
@@ -244,8 +246,9 @@ describe('TddCodeGenerationCommand', () => {
                     .mockResolvedValueOnce({ content: 'test("user service", () => { expect(UserService).toBeDefined(); });' })
                     .mockResolvedValueOnce({ content: 'class UserService { constructor() {} }' });
 
-                // Mock file operations
-                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue('/mock/path/file.js');
+                // Mock file operations - now returns vscode.Uri instead of string
+                const mockUri = { fsPath: '/mock/path/file.js' } as any;
+                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue(mockUri);
 
                 // Mock test execution to pass after implementation
                 jest.spyOn(command as any, 'runTests')
@@ -296,8 +299,9 @@ describe('TddCodeGenerationCommand', () => {
                     .mockResolvedValueOnce({ content: 'test("user service", () => { expect(UserService).toBeDefined(); });' })
                     .mockResolvedValueOnce({ content: 'class UserService { constructor() {} }' });
 
-                // Mock file operations
-                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue('/mock/path/file.js');
+                // Mock file operations - now returns vscode.Uri instead of string
+                const mockUri = { fsPath: '/mock/path/file.js' } as any;
+                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue(mockUri);
 
                 // Mock test execution to pass after implementation
                 jest.spyOn(command as any, 'runTests')
@@ -361,8 +365,9 @@ describe('TddCodeGenerationCommand', () => {
                     .mockResolvedValueOnce({ content: uiTest })       // Second call: UI test
                     .mockResolvedValueOnce({ content: implementation }); // Third call: implementation
 
-                // Mock file operations
-                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue('/mock/path/file.js');
+                // Mock file operations - now returns vscode.Uri instead of string
+                const mockUri = { fsPath: '/mock/path/file.js' } as any;
+                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue(mockUri);
 
                 // Mock test execution results
                 jest.spyOn(command as any, 'runTests')
@@ -379,7 +384,7 @@ describe('TddCodeGenerationCommand', () => {
                 expect(response).toContain('TDD Workflow Complete');
 
                 // Assert that unit test was generated
-                expect(response).toContain('🧪 **Test**:');
+                expect(response).toContain('🧪 **Unit Test**:');
 
                 // Assert that UI test was generated (since UI Tests are ON)
                 expect(response).toContain('🎭 **UI Test**:');
@@ -428,8 +433,9 @@ describe('TddCodeGenerationCommand', () => {
                     .mockResolvedValueOnce({ content: unitTest })     // First call: unit test
                     .mockResolvedValueOnce({ content: implementation }); // Second call: implementation
 
-                // Mock file operations
-                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue('/mock/path/file.js');
+                // Mock file operations - now returns vscode.Uri instead of string
+                const mockUri = { fsPath: '/mock/path/file.js' } as any;
+                jest.spyOn(command as any, 'saveCodeFile').mockResolvedValue(mockUri);
 
                 // Mock test execution results
                 jest.spyOn(command as any, 'runTests')
@@ -446,7 +452,7 @@ describe('TddCodeGenerationCommand', () => {
                 expect(response).toContain('TDD Workflow Complete');
 
                 // Assert that unit test was generated
-                expect(response).toContain('🧪 **Test**:');
+                expect(response).toContain('🧪 **Unit Test**:');
 
                 // Assert that UI test was NOT generated (since UI Tests are OFF)
                 expect(response).not.toContain('🎭 **UI Test**:');

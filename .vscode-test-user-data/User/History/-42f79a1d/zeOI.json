@@ -1,0 +1,5 @@
+{
+    "manifestoEnforcer.manifestoMode": false,
+    "manifestoEnforcer.defaultMode": "chat",
+    "manifestoEnforcer.autoMode": false
+}

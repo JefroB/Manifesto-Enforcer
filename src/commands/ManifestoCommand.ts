@@ -65,7 +65,7 @@ export class ManifestoCommand implements IChatCommand {
             const createWords = /\b(generate|create|make|build|write|gen)\b/i;
 
             if (createWords.test(input) && manifestoVariants.test(input)) {
-                return await this.handleManifestoGeneration(input, stateManager);
+                return await this.handleManifestoGeneration(input, stateManager, agentManager);
             }
 
             // Default to showing manifesto
@@ -161,14 +161,14 @@ export class ManifestoCommand implements IChatCommand {
     /**
      * Handle manifesto generation requests
      */
-    private async handleManifestoGeneration(input: string, stateManager: StateManager): Promise<string> {
+    private async handleManifestoGeneration(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         // Determine manifesto type
         const manifestoType = this.determineManifestoType(input);
 
         // Check if codebase is indexed
         if (!stateManager.isCodebaseIndexed) {
             // For empty projects or new projects, provide template-based generation
-            return this.generateTemplateBasedManifesto(manifestoType, input, stateManager);
+            return this.generateTemplateBasedManifesto(manifestoType, input, stateManager, agentManager);
         }
 
         // For existing projects, analyze codebase for manifesto opportunities
@@ -395,7 +395,7 @@ export class ManifestoCommand implements IChatCommand {
     /**
      * Generate template-based manifesto for empty/new projects
      */
-    private async generateTemplateBasedManifesto(manifestoType: string, input: string, stateManager: StateManager): Promise<string> {
+    private async generateTemplateBasedManifesto(manifestoType: string, input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
             // Detect project type from input
             const projectType = this.detectProjectType(input);
@@ -415,7 +415,7 @@ export class ManifestoCommand implements IChatCommand {
             if (autoModeManager.shouldAutoExecute(manifestoAction)) {
                 // Auto mode ON - execute directly like Cline
                 try {
-                    const result = await autoModeManager.executeAction(manifestoAction);
+                    const result = await autoModeManager.executeAction(manifestoAction, agentManager);
 
                     let response = `📋 **${manifestoType} Manifesto Created!**\n\n`;
                     response += `🚀 **Auto-execution complete!** Your manifesto is ready.\n\n`;
@@ -492,8 +492,8 @@ export class ManifestoCommand implements IChatCommand {
                 id: 'create-hello-world',
                 label: `🚀 Create Hello World (${projectType})`,
                 icon: '🚀',
-                command: 'createHelloWorld',
-                data: { language: projectType.toLowerCase(), manifestoType },
+                command: 'executeTddWorkflow',
+                data: { content: `Create a simple 'Hello, World!' script in ${projectType}.` },
                 style: 'primary'
             });
         }

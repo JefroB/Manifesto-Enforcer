@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { AuggieAdapter } from '../AuggieAdapter';
-import { AgentProvider } from '../../../core/types';
+import { AgentProvider, AgentConfig } from '../../../core/types';
 
 // Mock VSCode API
 jest.mock('vscode', () => ({
@@ -25,6 +25,12 @@ jest.mock('vscode', () => ({
     workspace: {
         workspaceFolders: [{ uri: { fsPath: '/test/workspace' } }],
         getConfiguration: jest.fn()
+    },
+    env: {
+        clipboard: {
+            writeText: jest.fn(() => Promise.resolve()),
+            readText: jest.fn(() => Promise.resolve(''))
+        }
     }
 }));
 
@@ -43,13 +49,9 @@ describe('AuggieAdapter Comprehensive Tests', () => {
         (vscode.window.showWarningMessage as jest.Mock).mockImplementation(() => Promise.resolve());
         (vscode.window.showInformationMessage as jest.Mock).mockImplementation(() => Promise.resolve());
 
-        // Always recreate the complete env mock structure after clearAllMocks
-        (vscode as any).env = {
-            clipboard: {
-                writeText: jest.fn(() => Promise.resolve()),
-                readText: jest.fn(() => Promise.resolve(''))
-            }
-        };
+        // Ensure clipboard mock is maintained after clearAllMocks
+        (vscode.env.clipboard.writeText as jest.Mock).mockImplementation(() => Promise.resolve());
+        (vscode.env.clipboard.readText as jest.Mock).mockImplementation(() => Promise.resolve(''));
 
         // Create mock config
         mockConfig = {
@@ -355,7 +357,13 @@ describe('AuggieAdapter Comprehensive Tests', () => {
             try {
                 // The AuggieAdapter has proper error handling for missing extensions
                 // This test verifies the error handling works correctly
-                const adapter = new AuggieAdapter();
+                const testConfig: AgentConfig = {
+                    id: 'test-auggie',
+                    name: 'Test Auggie',
+                    provider: AgentProvider.AUGGIE,
+                    isEnabled: true
+                };
+                const adapter = new AuggieAdapter(testConfig);
                 expect(adapter).toBeDefined();
                 expect(typeof adapter.sendMessage).toBe('function');
                 console.log('✓ AuggieAdapter handles missing extensions gracefully');

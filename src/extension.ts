@@ -232,16 +232,26 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage(`🛡️ Manifesto Mode: ${stateManager.isManifestoMode ? 'ON' : 'OFF'}`);
             }),
 
-            vscode.commands.registerCommand('manifestoEnforcer.switchAgent', async () => {
+            vscode.commands.registerCommand('manifestoEnforcer.switchAgent', async (agentName?: string) => {
                 try {
-                    const agents = ['Auggie', 'Amazon Q', 'Cline'];
-                    const selected = await vscode.window.showQuickPick(agents, {
-                        placeHolder: 'Select AI Agent for Piggie'
-                    });
-                    if (selected) {
-                        stateManager.currentAgent = selected;
-                        vscode.window.showInformationMessage(`🐷 Piggie is now using: ${selected}`);
+                    // If no agent specified, this should be called from the chat UI dropdown
+                    if (!agentName) {
+                        console.log('switchAgent called without parameter - should use chat UI dropdown');
+                        return;
                     }
+
+                    // Validate agent name
+                    const validAgents = ['Auggie', 'Amazon Q', 'Cline', 'Local'];
+                    if (!validAgents.includes(agentName)) {
+                        console.error(`Invalid agent name: ${agentName}`);
+                        return;
+                    }
+
+                    stateManager.currentAgent = agentName;
+                    console.log(`🐷 Piggie switched to: ${agentName}`);
+
+                    // Only show message if called programmatically (not from UI)
+                    vscode.window.showInformationMessage(`🐷 Piggie is now using: ${agentName}`);
                 } catch (error) {
                     console.error('Error in switchAgent command:', error);
                     vscode.window.showErrorMessage('Failed to switch agent');
@@ -569,9 +579,41 @@ export function activate(context: vscode.ExtensionContext) {
 
         console.log('🐷 Piggie extension activated successfully');
 
+        // CRITICAL: VSCode extensions should return undefined by default
+        // Return API object for integration tests only
+        const isVSCodeTest = vscode.ExtensionMode && context.extensionMode === vscode.ExtensionMode.Test;
+        const shouldReturnApi = process.env.PIGGIE_RETURN_API === 'true' || isVSCodeTest;
+
+        if (shouldReturnApi) {
+            return {
+                stateManager,
+                manifestoEngine,
+                version: '0.0.7-alpha'
+            };
+        }
+
+        // Standard VSCode extension behavior: return undefined
+        return undefined;
+
     } catch (error) {
         console.error('🐷 Extension activation failed:', error);
         vscode.window.showErrorMessage('Failed to activate Manifesto Enforcer: ' + error);
+
+        // CRITICAL: Return API object for testing even on error, undefined for production
+        const isVSCodeTest = context.extensionMode === vscode.ExtensionMode.Test;
+        const shouldReturnApi = process.env.PIGGIE_RETURN_API === 'true' || isVSCodeTest;
+
+        if (shouldReturnApi) {
+            return {
+                stateManager: null,
+                manifestoEngine: null,
+                version: '0.0.7-alpha',
+                error: error instanceof Error ? error.message : 'Unknown activation error'
+            };
+        }
+
+        // Standard VSCode extension behavior: return undefined even on error
+        return undefined;
     }
 }
 
@@ -892,7 +934,7 @@ class PiggieChatProvider implements vscode.WebviewViewProvider {
             };
 
             // Execute the action
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, this.agentManager);
 
             // Send success response to chat
             this.sendResponse(`✅ **Action Completed!**\n\n${result}`);

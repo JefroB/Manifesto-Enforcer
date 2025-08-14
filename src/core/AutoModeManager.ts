@@ -7,6 +7,8 @@ import * as vscode from 'vscode';
 import { ChatAction, ActionSafety, ActionData } from './types';
 import { StateManager } from './StateManager';
 import { PiggieFileManager } from '../file-operations/PiggieFileManager';
+import { TddCodeGenerationCommand } from '../commands/TddCodeGenerationCommand';
+import { AgentManager } from '../agents/AgentManager';
 
 export interface AutoModeResult {
     executed: boolean;
@@ -49,7 +51,7 @@ export class AutoModeManager {
     /**
      * Execute an action automatically if safe, or return approval requirement
      */
-    async processAction(action: ChatAction): Promise<AutoModeResult> {
+    async processAction(action: ChatAction, agentManager: AgentManager): Promise<AutoModeResult> {
         try {
             if (!this.shouldAutoExecute(action)) {
                 return {
@@ -61,7 +63,7 @@ export class AutoModeManager {
             }
 
             // Auto-execute the action
-            const result = await this.executeAction(action);
+            const result = await this.executeAction(action, agentManager);
             return {
                 executed: true,
                 message: result,
@@ -80,36 +82,48 @@ export class AutoModeManager {
 
     /**
      * Execute a specific action
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
      */
-    async executeAction(action: ChatAction): Promise<string> {
-        switch (action.command) {
-            case 'createFile':
-                return await this.handleCreateFile(action);
-            case 'createManifesto':
-                return await this.handleCreateManifesto(action);
-            case 'generateCode':
-                return await this.handleGenerateCode(action);
-            case 'editFile':
-                return `⚠️ File editing requires manual approval`;
-            case 'lintCode':
-                return `✅ Linting not yet implemented in auto mode`;
-            case 'indexCodebase':
-                return `✅ Indexing not yet implemented in auto mode`;
-            case 'createHelloWorld':
-                return await this.handleCreateHelloWorld(action);
-            case 'previewManifesto':
-                return await this.handlePreviewManifesto(action);
-            default:
-                throw new Error(`Unknown action command: ${action.command}`);
+    async executeAction(action: ChatAction, agentManager: AgentManager): Promise<string> {
+        try {
+            switch (action.command) {
+                case 'createFile':
+                    return await this.handleCreateFile(action);
+                case 'createManifesto':
+                    return await this.handleCreateManifesto(action);
+                case 'generateCode':
+                    return await this.handleGenerateCode(action);
+                case 'editFile':
+                    return `⚠️ File editing requires manual approval`;
+                case 'lintCode':
+                    return `✅ Linting not yet implemented in auto mode`;
+                case 'indexCodebase':
+                    return `✅ Indexing not yet implemented in auto mode`;
+                case 'executeTddWorkflow':
+                    if (!action.data?.content) {
+                        throw new Error('TDD workflow requires a content prompt in action data.');
+                    }
+                    const tddCommand = new TddCodeGenerationCommand();
+                    return await tddCommand.execute(action.data.content, this.stateManager, agentManager);
+                case 'previewManifesto':
+                    return await this.handlePreviewManifesto(action);
+                default:
+                    throw new Error(`Unknown action command: ${action.command}`);
+            }
+        } catch (error) {
+            // MANDATORY: Comprehensive error handling (manifesto requirement)
+            console.error('Action execution failed:', error);
+            throw error;
         }
     }
 
     /**
      * Handle file creation
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
      */
     private async handleCreateFile(action: ChatAction): Promise<string> {
         const { fileName, content, fileType } = action.data as ActionData;
-        
+
         if (!fileName || !content) {
             throw new Error('Missing fileName or content for file creation');
         }
@@ -123,7 +137,17 @@ export class AutoModeManager {
 
         const result = await this.fileManager.writeCodeToFile(operation);
 
-        if (result.success) {
+        if (result.success && result.path) {
+            try {
+                // Open the newly created file in VS Code editor
+                const fileUri = vscode.Uri.file(result.path);
+                const document = await vscode.workspace.openTextDocument(fileUri);
+                await vscode.window.showTextDocument(document);
+            } catch (openError) {
+                console.warn(`Auto-Mode: Successfully created ${result.path} but failed to open it in the editor:`, openError);
+                // Do not throw; the primary action (file creation) was successful.
+            }
+
             return `✅ **Auto-created:** \`${fileName}\`\n📁 **Location:** ${result.path}`;
         } else {
             throw new Error(`Failed to create ${fileName}: ${result.error}`);
@@ -196,7 +220,17 @@ export class AutoModeManager {
 
         const result = await this.fileManager.writeCodeToFile(operation);
 
-        if (result.success) {
+        if (result.success && result.path) {
+            try {
+                // Open the newly created manifesto file in VS Code editor
+                const fileUri = vscode.Uri.file(result.path);
+                const document = await vscode.workspace.openTextDocument(fileUri);
+                await vscode.window.showTextDocument(document);
+            } catch (openError) {
+                console.warn(`Auto-Mode: Successfully created ${result.path} but failed to open it in the editor:`, openError);
+                // Do not throw; the primary action (file creation) was successful.
+            }
+
             let response = `✅ **${type} Manifesto Created Successfully!**\n\n`;
 
             if (manifestoExists && createBackup) {
@@ -219,11 +253,18 @@ export class AutoModeManager {
 
     /**
      * Handle manifesto preview
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
      */
     private async handlePreviewManifesto(action: ChatAction): Promise<string> {
-        const { content, type } = action.data as ActionData;
+        try {
+            const { content, type } = action.data as ActionData;
 
-        return `📋 **Full ${type} Manifesto Content:**\n\n\`\`\`markdown\n${content}\n\`\`\`\n\n**💾 Ready to create this manifesto?** Use the "Create manifesto.md" button above.`;
+            return `📋 **Full ${type} Manifesto Content:**\n\n\`\`\`markdown\n${content}\n\`\`\`\n\n**💾 Ready to create this manifesto?** Use the "Create manifesto.md" button above.`;
+        } catch (error) {
+            // MANDATORY: Comprehensive error handling (manifesto requirement)
+            console.error('Manifesto preview failed:', error);
+            throw error;
+        }
     }
 
     /**
@@ -261,80 +302,5 @@ export class AutoModeManager {
         }
     }
 
-    /**
-     * Handle Hello World creation action
-     * MANDATORY: Comprehensive error handling and input validation
-     */
-    private async handleCreateHelloWorld(action: ChatAction): Promise<string> {
-        try {
-            // CRITICAL: Input validation
-            const actionData = action.data as ActionData;
-            if (!actionData || !actionData.language) {
-                throw new Error('Missing language for Hello World creation');
-            }
 
-            const { language } = actionData;
-            const fileName = `hello.${this.getFileExtension(language)}`;
-            const code = this.generateHelloWorldCode(language);
-
-            const operation = {
-                path: fileName,
-                content: code,
-                type: 'create' as const,
-                backup: true
-            };
-
-            const result = await this.fileManager.writeCodeToFile(operation);
-
-            if (result.success) {
-                return `✅ **Hello World in ${language}**\n📁 **File:** ${fileName}\n📍 **Location:** ${result.path}`;
-            } else {
-                throw new Error(`Failed to create Hello World: ${result.error}`);
-            }
-        } catch (error) {
-            // MANDATORY: Comprehensive error handling
-            console.error('Hello World creation failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get file extension for programming language
-     */
-    private getFileExtension(language: string): string {
-        const extensions: { [key: string]: string } = {
-            'javascript': 'js',
-            'typescript': 'ts',
-            'python': 'py',
-            'java': 'java',
-            'csharp': 'cs',
-            'cpp': 'cpp',
-            'c': 'c',
-            'go': 'go',
-            'rust': 'rs',
-            'php': 'php',
-            'ruby': 'rb'
-        };
-        return extensions[language.toLowerCase()] || 'txt';
-    }
-
-    /**
-     * Generate Hello World code for different languages
-     */
-    private generateHelloWorldCode(language: string): string {
-        const templates: { [key: string]: string } = {
-            'javascript': 'console.log("Hello, World!");',
-            'typescript': 'console.log("Hello, World!");',
-            'python': 'print("Hello, World!")',
-            'java': 'public class Hello {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
-            'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, World!");\n    }\n}',
-            'cpp': '#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
-            'c': '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}',
-            'go': 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello, World!")\n}',
-            'rust': 'fn main() {\n    println!("Hello, World!");\n}',
-            'php': '<?php\necho "Hello, World!";\n?>',
-            'ruby': 'puts "Hello, World!"'
-        };
-        return templates[language.toLowerCase()] || `// Hello, World! in ${language}\nconsole.log("Hello, World!");`;
-    }
 }

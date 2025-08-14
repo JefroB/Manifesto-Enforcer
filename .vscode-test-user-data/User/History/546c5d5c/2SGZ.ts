@@ -1,0 +1,5 @@
+
+                function unsafeFunction() {
+                    return "test";
+                }
+            
