@@ -1,8 +1,8 @@
 {
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
-  "description": "🐷 [ALPHA v0.0.72] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.72-alpha",
+  "description": "🐷 [ALPHA v0.0.73] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
+  "version": "0.0.73-alpha",
   "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",

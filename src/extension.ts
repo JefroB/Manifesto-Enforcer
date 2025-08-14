@@ -128,11 +128,6 @@ export function activate(context: vscode.ExtensionContext) {
             console.error('❌ Failed to register chat provider:', error);
         }
 
-        // Initialize WebviewManager for new webview system (after provider creation)
-        console.log('🏗️ Creating WebviewManager...');
-        const webviewManager = new WebviewManager(context, stateManager, provider.getAgentManager());
-        console.log('✅ WebviewManager created');
-
         // Providers are now managed locally in activate function scope
 
         // Register tree data providers with error handling
@@ -235,6 +230,11 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push({
             dispose: () => provider.dispose()
         });
+
+        // Initialize WebviewManager for new webview system (after provider creation)
+        console.log('🏗️ Creating WebviewManager...');
+        const webviewManager = new WebviewManager(context, stateManager, provider.getAgentManager());
+        console.log('✅ WebviewManager created');
 
         // Register all commands
         context.subscriptions.push(
