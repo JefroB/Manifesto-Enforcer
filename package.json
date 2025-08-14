@@ -91,13 +91,13 @@
         "icon": "$(settings-gear)"
       },
       {
-        "command": "manifestoEnforcer.testConnection",
-        "title": "🔧 Test Piggie Connection",
+        "command": "manifestoEnforcer.settings.testConnection",
+        "title": "🔧 Test Piggie Connection (Settings)",
         "icon": "$(debug)"
       },
       {
-        "command": "piggie.discoverAPIs",
-        "title": "🔍 Piggie: Discover AI Agent APIs",
+        "command": "manifestoEnforcer.settings.discoverAPIs",
+        "title": "🔍 Discover AI Agent APIs (Settings)",
         "icon": "$(search)"
       },
       {
@@ -230,10 +230,38 @@
     "configuration": {
       "title": "Manifesto Enforcer",
       "properties": {
+        "manifestoEnforcer.manifestoMode": {
+          "type": "string",
+          "default": "developer",
+          "enum": [
+            "developer",
+            "qa",
+            "solo"
+          ],
+          "enumDescriptions": [
+            "Developer mode - uses manifesto-dev.md",
+            "QA mode - uses manifesto-qa.md",
+            "Solo Dev mode - merges both manifestos"
+          ],
+          "description": "Manifesto enforcement mode",
+          "scope": "resource"
+        },
+        "manifestoEnforcer.devManifestoPath": {
+          "type": "string",
+          "default": "manifesto-dev.md",
+          "description": "Path to the development manifesto file",
+          "scope": "resource"
+        },
+        "manifestoEnforcer.qaManifestoPath": {
+          "type": "string",
+          "default": "manifesto-qa.md",
+          "description": "Path to the QA manifesto file",
+          "scope": "resource"
+        },
         "manifestoEnforcer.manifestoPath": {
           "type": "string",
           "default": "manifesto.md",
-          "description": "Path to the development manifesto file",
+          "description": "Path to the legacy manifesto file (deprecated)",
           "scope": "resource"
         },
         "manifestoEnforcer.defaultAgent": {
