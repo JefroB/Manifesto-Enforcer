@@ -250,7 +250,10 @@ describe('StateManager Comprehensive Tests', () => {
         });
 
         it('should handle invalid context gracefully', () => {
-            expect(() => new (StateManager as any)(null)).toThrow('ExtensionContext is required');
+            // Constructor now allows undefined context for testing
+            expect(() => new (StateManager as any)(null)).not.toThrow();
+            const stateManager = new (StateManager as any)(null);
+            expect(stateManager).toBeDefined();
         });
     });
 

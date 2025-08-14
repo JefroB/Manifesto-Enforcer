@@ -128,7 +128,7 @@ describe('ManifestoCommand Integration', () => {
             
             expect(result).toContain('**Detected Project Type:** React');
             expect(result).toContain('🚀 Create Hello World (React)');
-            expect(result).toContain('data-action-command="createHelloWorld"');
+            expect(result).toContain('data-action-command="executeTddWorkflow"');
         });
 
         it('should detect Python project type', async () => {
@@ -311,7 +311,7 @@ describe('ManifestoCommand Integration', () => {
             
             const result = await manifestoCommand.execute(input, mockStateManager, mockAgentManager);
             
-            expect(result).toContain('data-action-command="createHelloWorld"');
+            expect(result).toContain('data-action-command="executeTddWorkflow"');
             expect(result).toContain('🚀 Create Hello World (TypeScript)');
         });
 

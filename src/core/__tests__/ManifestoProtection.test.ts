@@ -7,6 +7,7 @@
 import { AutoModeManager } from '../AutoModeManager';
 import { StateManager } from '../StateManager';
 import { PiggieFileManager } from '../../file-operations/PiggieFileManager';
+import { AgentManager } from '../../agents/AgentManager';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
@@ -19,6 +20,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
     let autoModeManager: AutoModeManager;
     let mockStateManager: StateManager;
     let mockFileManager: jest.Mocked<PiggieFileManager>;
+    let mockAgentManager: jest.Mocked<AgentManager>;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -37,6 +39,11 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
             validateCodeQuality: jest.fn(),
             readProjectStructure: jest.fn(),
             dispose: jest.fn()
+        } as any;
+
+        mockAgentManager = {
+            sendMessage: jest.fn().mockResolvedValue('Mock response'),
+            getCurrentAgent: jest.fn().mockReturnValue('TestAgent')
         } as any;
 
         autoModeManager = new AutoModeManager(mockStateManager);
@@ -59,7 +66,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
             };
 
             // Should NOT auto-execute when manifesto exists
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             
             expect(result).toContain('⚠️ **EXISTING MANIFESTO DETECTED**');
             expect(result).toContain('manifesto.md already exists');
@@ -84,7 +91,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
                 }
             };
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             
             expect(result).toContain('✅ **General Manifesto Created Successfully!**');
             expect(mockFileManager.writeCodeToFile).toHaveBeenCalledWith(
@@ -124,7 +131,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
                     path: '/workspace/manifesto.md'
                 });
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             
             expect(result).toContain('📋 **Backup created**');
             expect(result).toContain('Backup created');
@@ -145,7 +152,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
                 }
             };
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             
             expect(result).toContain('⚠️ **EXISTING MANIFESTO DETECTED**');
             expect(result).not.toContain('✅ **General Manifesto Created Successfully!**');
@@ -172,7 +179,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
             const shouldAutoExecute = autoModeManager.shouldAutoExecute(action);
             expect(shouldAutoExecute).toBe(false);
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             expect(result).toContain('⚠️ **EXISTING MANIFESTO DETECTED**');
         });
 
@@ -197,7 +204,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
             const shouldAutoExecute = autoModeManager.shouldAutoExecute(action);
             expect(shouldAutoExecute).toBe(false); // Manifesto creation should NEVER auto-execute
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             expect(result).toContain('✅ **General Manifesto Created Successfully!**');
         });
     });
@@ -217,7 +224,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
             };
 
             try {
-                const result = await autoModeManager.executeAction(action);
+                const result = await autoModeManager.executeAction(action, mockAgentManager);
                 expect(result).toContain('❌');
                 expect(result).toContain('Permission denied');
             } catch (error) {
@@ -245,7 +252,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
             };
 
             try {
-                const result = await autoModeManager.executeAction(action);
+                const result = await autoModeManager.executeAction(action, mockAgentManager);
                 expect(result).toContain('❌');
                 expect(result).toContain('Backup failed');
             } catch (error) {
@@ -271,7 +278,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
                 }
             };
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             
             expect(result).toContain('⚠️ **EXISTING MANIFESTO DETECTED**');
             expect(result).toContain('Critical Production Manifesto');
@@ -294,7 +301,7 @@ describe('CRITICAL: Manifesto Protection Tests', () => {
                 }
             };
 
-            const result = await autoModeManager.executeAction(action);
+            const result = await autoModeManager.executeAction(action, mockAgentManager);
             
             expect(result).toContain('📋 **Current Manifesto Content:**');
             expect(result).toContain('Production Manifesto');
