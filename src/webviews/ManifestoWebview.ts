@@ -38,6 +38,41 @@ export class ManifestoWebview {
     }
 
     /**
+     * Setup webview view for sidebar panel
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public setupView(webviewView: vscode.WebviewView): void {
+        try {
+            if (!webviewView) {
+                throw new Error('Invalid webview view provided');
+            }
+
+            // Configure webview options
+            webviewView.webview.options = {
+                enableScripts: true,
+                localResourceRoots: [this.context.extensionUri]
+            };
+
+            // Set initial HTML content
+            webviewView.webview.html = this.getHtmlContent();
+
+            // Handle messages from webview
+            webviewView.webview.onDidReceiveMessage(
+                message => this.handleMessage(message),
+                undefined,
+                this.context.subscriptions
+            );
+
+            // Store reference for refreshing
+            this.panel = webviewView as any; // Temporary workaround for type compatibility
+
+        } catch (error) {
+            console.error('Failed to setup Manifesto Management view:', error);
+            throw new Error(`Manifesto Management view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
      * Create the webview panel
      * MANDATORY: Comprehensive error handling (manifesto requirement)
      */
@@ -89,7 +124,7 @@ export class ManifestoWebview {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Manifesto Management</title>
+                    <title>Manifesto</title>
                     <style>
                         body {
                             font-family: var(--vscode-font-family);
@@ -97,12 +132,7 @@ export class ManifestoWebview {
                             color: var(--vscode-foreground);
                             background-color: var(--vscode-editor-background);
                         }
-                        .header {
-                            font-size: 24px;
-                            font-weight: bold;
-                            margin-bottom: 20px;
-                            color: var(--vscode-textLink-foreground);
-                        }
+
                         .tabs {
                             display: flex;
                             border-bottom: 1px solid var(--vscode-panel-border);
@@ -229,8 +259,6 @@ export class ManifestoWebview {
                     </style>
                 </head>
                 <body>
-                    <div class="header">Manifesto Management</div>
-                    
                     <div class="tabs">
                         <button class="tab ${this.currentTab === 'manifesto' ? 'active' : ''}" id="tab-manifesto">Manifesto</button>
                         <button class="tab ${this.currentTab === 'glossary' ? 'active' : ''}" id="tab-glossary">Glossary</button>
@@ -238,34 +266,37 @@ export class ManifestoWebview {
 
                     <div id="content-manifesto" class="tab-content ${this.currentTab === 'manifesto' ? 'active' : ''}">
                         <div class="mode-section">
-                            <div class="mode-label">Manifesto Mode:</div>
+                            <label>Mode:</label>
                             <select id="manifestoModeDropdown">
                                 <option value="developer" ${currentMode === 'developer' ? 'selected' : ''}>Developer</option>
                                 <option value="qa" ${currentMode === 'qa' ? 'selected' : ''}>QA</option>
-                                <option value="solo" ${currentMode === 'solo' ? 'selected' : ''}>Solo</option>
+                                <option value="solo" ${currentMode === 'solo' ? 'selected' : ''}>Solo Dev</option>
                             </select>
-                            <div style="font-size: 12px; color: var(--vscode-descriptionForeground);">
-                                Current mode: <strong>${currentMode}</strong>
+                        </div>
+
+                        <div class="manifesto-files">
+                            <div class="manifesto-item">
+                                📋 Developer Manifesto
+                                <div class="manifesto-actions">
+                                    <button onclick="viewManifesto('dev')">View</button>
+                                    <button onclick="editManifesto('dev')">Edit</button>
+                                    <button onclick="importManifesto('dev')">Import</button>
+                                    <button onclick="exportManifesto('dev')">Export</button>
+                                </div>
+                            </div>
+                            <div class="manifesto-item">
+                                📋 QA Manifesto
+                                <div class="manifesto-actions">
+                                    <button onclick="viewManifesto('qa')">View</button>
+                                    <button onclick="editManifesto('qa')">Edit</button>
+                                    <button onclick="importManifesto('qa')">Import</button>
+                                    <button onclick="exportManifesto('qa')">Export</button>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="file-section">
-                            <h3>Manifesto Files:</h3>
-                            <div class="file-item">
-                                <span class="file-path">${devPath}</span>
-                                <div class="file-actions">
-                                    <button onclick="editManifesto('${devPath}')">Edit</button>
-                                    <button class="danger" onclick="deleteManifesto('${devPath}')">Delete</button>
-                                </div>
-                            </div>
-                            <div class="file-item">
-                                <span class="file-path">${qaPath}</span>
-                                <div class="file-actions">
-                                    <button onclick="editManifesto('${qaPath}')">Edit</button>
-                                    <button class="danger" onclick="deleteManifesto('${qaPath}')">Delete</button>
-                                </div>
-                            </div>
-                            <button onclick="createManifesto()">Create New Manifesto</button>
+                        <div class="compliance-section">
+                            <button class="validate-btn" onclick="validateCompliance()">🛡️ Validate Compliance</button>
                         </div>
 
                         <div class="rules-section">

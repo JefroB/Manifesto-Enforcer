@@ -41,6 +41,41 @@ export class CodeActionsWebview {
     }
 
     /**
+     * Setup webview view for sidebar panel
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public setupView(webviewView: vscode.WebviewView): void {
+        try {
+            if (!webviewView) {
+                throw new Error('Invalid webview view provided');
+            }
+
+            // Configure webview options
+            webviewView.webview.options = {
+                enableScripts: true,
+                localResourceRoots: [this.context.extensionUri]
+            };
+
+            // Set initial HTML content
+            webviewView.webview.html = this.getHtmlContent();
+
+            // Handle messages from webview
+            webviewView.webview.onDidReceiveMessage(
+                message => this.handleMessage(message),
+                undefined,
+                this.context.subscriptions
+            );
+
+            // Store reference for refreshing
+            this.panel = webviewView as any; // Temporary workaround for type compatibility
+
+        } catch (error) {
+            console.error('Failed to setup Code Actions view:', error);
+            throw new Error(`Code Actions view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
      * Create the webview panel
      * MANDATORY: Comprehensive error handling (manifesto requirement)
      */
@@ -91,7 +126,7 @@ export class CodeActionsWebview {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Code Actions (Select code)</title>
+                    <title>Code Actions</title>
                     <style>
                         body {
                             font-family: var(--vscode-font-family);
@@ -99,12 +134,7 @@ export class CodeActionsWebview {
                             color: var(--vscode-foreground);
                             background-color: var(--vscode-editor-background);
                         }
-                        .header {
-                            font-size: 18px;
-                            font-weight: bold;
-                            margin-bottom: 20px;
-                            color: var(--vscode-textLink-foreground);
-                        }
+
                         .agent-section {
                             margin-bottom: 20px;
                             padding: 15px;
@@ -166,16 +196,13 @@ export class CodeActionsWebview {
                     </style>
                 </head>
                 <body>
-                    <div class="header">Code Actions (Select code)</div>
-                    
                     <div class="selection-status">
                         ${this.hasSelection ? '✅ Code selected' : '⚠️ Select code in editor to enable actions'}
                     </div>
 
                     <div class="agent-section">
-                        <div class="agent-label">AI Agent:</div>
                         <select id="agentDropdown">
-                            ${availableAgents.map(agent => 
+                            ${availableAgents.map(agent =>
                                 `<option value="${agent}" ${agent === currentAgent ? 'selected' : ''}>${agent}</option>`
                             ).join('')}
                         </select>
@@ -183,10 +210,12 @@ export class CodeActionsWebview {
 
                     <div class="actions-section">
                         <div class="action-buttons">
-                            <button id="reviewBtn" ${buttonsDisabled}>🔍 Review</button>
-                            <button id="refactorBtn" ${buttonsDisabled}>🔧 Refactor</button>
-                            <button id="explainBtn" ${buttonsDisabled}>💡 Explain</button>
-                            <button id="sendToAIBtn" class="send-to-ai" ${buttonsDisabled}>🚀 Send to AI</button>
+                            <button id="reviewBtn" ${buttonsDisabled}>🐷 Review</button>
+                            <button id="refactorBtn" ${buttonsDisabled}>🐷 Refactor</button>
+                            <button id="explainBtn" ${buttonsDisabled}>🐷 Explain</button>
+                        </div>
+                        <div class="send-ai-section">
+                            <button id="sendToAIBtn" class="send-to-ai" ${buttonsDisabled}>🐷 Send to AI</button>
                         </div>
                     </div>
 

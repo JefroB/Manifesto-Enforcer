@@ -237,6 +237,54 @@ export class WebviewManager {
     }
 
     /**
+     * Setup Code Actions webview view (for sidebar panel)
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public setupCodeActionsView(webviewView: vscode.WebviewView): void {
+        try {
+            if (!this.codeActionsWebview) {
+                this.codeActionsWebview = new CodeActionsWebview(this.context, this.stateManager, this.agentManager);
+            }
+            this.codeActionsWebview.setupView(webviewView);
+        } catch (error) {
+            console.error('Failed to setup Code Actions view:', error);
+            throw new Error(`Code Actions view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
+     * Setup Manifesto Management webview view (for sidebar panel)
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public setupManifestoManagementView(webviewView: vscode.WebviewView): void {
+        try {
+            if (!this.manifestoWebview) {
+                this.manifestoWebview = new ManifestoWebview(this.context, this.stateManager);
+            }
+            this.manifestoWebview.setupView(webviewView);
+        } catch (error) {
+            console.error('Failed to setup Manifesto Management view:', error);
+            throw new Error(`Manifesto Management view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
+     * Setup Glossary Management webview view (for sidebar panel)
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public setupGlossaryManagementView(webviewView: vscode.WebviewView): void {
+        try {
+            if (!this.glossaryWebview) {
+                this.glossaryWebview = new GlossaryWebview(this.context, this.stateManager);
+            }
+            this.glossaryWebview.setupView(webviewView);
+        } catch (error) {
+            console.error('Failed to setup Glossary Management view:', error);
+            throw new Error(`Glossary Management view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
      * Get webview status for debugging
      * MANDATORY: Comprehensive error handling (manifesto requirement)
      */

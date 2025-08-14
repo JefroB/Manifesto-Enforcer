@@ -16,6 +16,7 @@ export interface ExtendedGlossaryTerm extends GlossaryTerm {
     id: string;
     createdAt: Date;
     updatedAt: Date;
+    usageCount?: number;
 }
 
 /**
@@ -53,6 +54,41 @@ export class GlossaryWebview {
         } catch (error) {
             console.error('GlossaryWebview initialization failed:', error);
             throw new Error(`GlossaryWebview initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
+     * Setup webview view for sidebar panel
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public setupView(webviewView: vscode.WebviewView): void {
+        try {
+            if (!webviewView) {
+                throw new Error('Invalid webview view provided');
+            }
+
+            // Configure webview options
+            webviewView.webview.options = {
+                enableScripts: true,
+                localResourceRoots: [this.context.extensionUri]
+            };
+
+            // Set initial HTML content
+            webviewView.webview.html = this.getHtmlContent();
+
+            // Handle messages from webview
+            webviewView.webview.onDidReceiveMessage(
+                message => this.handleMessage(message),
+                undefined,
+                this.context.subscriptions
+            );
+
+            // Store reference for refreshing
+            this.panel = webviewView as any; // Temporary workaround for type compatibility
+
+        } catch (error) {
+            console.error('Failed to setup Glossary Management view:', error);
+            throw new Error(`Glossary Management view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -107,7 +143,7 @@ export class GlossaryWebview {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Glossary Management</title>
+                    <title>Glossary</title>
                     <style>
                         body {
                             font-family: var(--vscode-font-family);
@@ -115,12 +151,7 @@ export class GlossaryWebview {
                             color: var(--vscode-foreground);
                             background-color: var(--vscode-editor-background);
                         }
-                        .header {
-                            font-size: 24px;
-                            font-weight: bold;
-                            margin-bottom: 20px;
-                            color: var(--vscode-textLink-foreground);
-                        }
+
                         .toolbar {
                             display: flex;
                             justify-content: space-between;
@@ -277,52 +308,39 @@ export class GlossaryWebview {
                     </style>
                 </head>
                 <body>
-                    <div class="header">Glossary Management</div>
-                    
                     <div class="toolbar">
-                        <div class="search-section">
-                            <input type="text" id="searchInput" placeholder="Search terms..." value="${this.searchQuery}">
-                            <select id="categoryFilter">
-                                <option value="">All Categories</option>
-                                ${this.getUniqueCategories().map(cat => 
-                                    `<option value="${cat}" ${cat === this.categoryFilter ? 'selected' : ''}>${cat}</option>`
-                                ).join('')}
-                            </select>
-                        </div>
-                        <div class="action-section">
+                        <div class="top-actions">
+                            <input type="text" id="searchInput" placeholder="Search" value="${this.searchQuery}">
                             <button id="addTermBtn" class="primary">Add Term</button>
-                            <button id="bulkDeleteBtn" class="danger">Delete Selected</button>
                             <button id="importBtn">Import</button>
                             <button id="exportBtn">Export</button>
+                        </div>
+                        <div class="sort-section">
+                            <label>Sort by:</label>
+                            <select id="sortDropdown">
+                                <option value="usage" ${this.sortColumn === 'usage' ? 'selected' : ''}>Usage</option>
+                                <option value="term" ${this.sortColumn === 'term' ? 'selected' : ''}>Term</option>
+                                <option value="definition" ${this.sortColumn === 'definition' ? 'selected' : ''}>Definition</option>
+                                <option value="category" ${this.sortColumn === 'category' ? 'selected' : ''}>Category</option>
+                            </select>
                         </div>
                     </div>
 
                     <table class="glossary-table">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="selectAll" class="checkbox"></th>
-                                <th onclick="sortColumn('term')">
-                                    Term
-                                    <span class="sort-indicator">${this.getSortIndicator('term')}</span>
-                                </th>
-                                <th onclick="sortColumn('definition')">
-                                    Definition
-                                    <span class="sort-indicator">${this.getSortIndicator('definition')}</span>
-                                </th>
-                                <th onclick="sortColumn('category')">
-                                    Category
-                                    <span class="sort-indicator">${this.getSortIndicator('category')}</span>
-                                </th>
+                                <th onclick="sortColumn('term')">Term</th>
+                                <th onclick="sortColumn('definition')">Definition</th>
+                                <th onclick="sortColumn('usage')">Used</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${paginatedTerms.map(term => `
-                                <tr class="${this.selectedIds.includes(term.id) ? 'selected' : ''}" data-id="${term.id}">
-                                    <td><input type="checkbox" class="checkbox row-checkbox" data-id="${term.id}" ${this.selectedIds.includes(term.id) ? 'checked' : ''}></td>
+                                <tr data-id="${term.id}">
                                     <td>${term.term}</td>
                                     <td>${term.definition}</td>
-                                    <td>${term.category}</td>
+                                    <td>${term.usageCount || 0}x</td>
                                     <td>
                                         <div class="term-actions">
                                             <button onclick="editTerm('${term.id}')">Edit</button>
@@ -1036,6 +1054,20 @@ export class GlossaryWebview {
         } catch (error) {
             console.error('Failed to generate ID:', error);
             return `term-${Date.now()}`;
+        }
+    }
+
+    /**
+     * Refresh webview content
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    public refreshContent(): void {
+        try {
+            if (this.panel && this.panel.webview) {
+                this.panel.webview.html = this.getHtmlContent();
+            }
+        } catch (error) {
+            console.error('Failed to refresh webview content:', error);
         }
     }
 

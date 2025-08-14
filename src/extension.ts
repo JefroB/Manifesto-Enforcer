@@ -113,6 +113,35 @@ export function activate(context: vscode.ExtensionContext) {
             console.error('❌ Failed to register chat provider:', error);
         }
 
+        // Initialize WebviewManager for new webview system (before registering view providers)
+        console.log('🏗️ Creating WebviewManager...');
+        const webviewManager = new WebviewManager(context, stateManager, provider.getAgentManager());
+        console.log('✅ WebviewManager created');
+
+        // Register new webview view providers
+        try {
+            context.subscriptions.push(
+                vscode.window.registerWebviewViewProvider('codeActionsPanel', {
+                    resolveWebviewView: (webviewView) => {
+                        webviewManager.setupCodeActionsView(webviewView);
+                    }
+                }),
+                vscode.window.registerWebviewViewProvider('manifestoManagementPanel', {
+                    resolveWebviewView: (webviewView) => {
+                        webviewManager.setupManifestoManagementView(webviewView);
+                    }
+                }),
+                vscode.window.registerWebviewViewProvider('glossaryManagementPanel', {
+                    resolveWebviewView: (webviewView) => {
+                        webviewManager.setupGlossaryManagementView(webviewView);
+                    }
+                })
+            );
+            console.log('✅ All webview view providers registered successfully');
+        } catch (error) {
+            console.error('❌ Failed to register webview view providers:', error);
+        }
+
         // Tree data providers removed - replaced with modern webview system
         // Old tree views: manifestoView, glossaryView, piggieActions, piggieSecurityReview, manifestoRules
         // New webview system: CodeActionsWebview, ManifestoWebview, GlossaryWebview
@@ -179,10 +208,7 @@ export function activate(context: vscode.ExtensionContext) {
             dispose: () => provider.dispose()
         });
 
-        // Initialize WebviewManager for new webview system (after provider creation)
-        console.log('🏗️ Creating WebviewManager...');
-        const webviewManager = new WebviewManager(context, stateManager, provider.getAgentManager());
-        console.log('✅ WebviewManager created');
+        // WebviewManager already created earlier in activation
 
         // Register all commands
         context.subscriptions.push(
@@ -608,7 +634,8 @@ export function activate(context: vscode.ExtensionContext) {
             return {
                 stateManager,
                 manifestoEngine,
-                version: '0.0.7-alpha'
+                context,
+                version: '0.0.73-alpha'
             };
         }
 
@@ -620,14 +647,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('Failed to activate Manifesto Enforcer: ' + error);
 
         // CRITICAL: Return API object for testing even on error, undefined for production
-        const isVSCodeTest = context.extensionMode === vscode.ExtensionMode.Test;
+        const isVSCodeTest = context && context.extensionMode === vscode.ExtensionMode.Test;
         const shouldReturnApi = process.env.PIGGIE_RETURN_API === 'true' || isVSCodeTest;
 
         if (shouldReturnApi) {
             return {
                 stateManager: null,
                 manifestoEngine: null,
-                version: '0.0.7-alpha',
+                context,
+                version: '0.0.73-alpha',
                 error: error instanceof Error ? error.message : 'Unknown activation error'
             };
         }

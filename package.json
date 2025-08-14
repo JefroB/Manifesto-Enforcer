@@ -151,10 +151,53 @@
           "id": "piggieChatPanel",
           "name": "💬 Chat with Piggie",
           "type": "webview"
+        },
+        {
+          "id": "codeActionsPanel",
+          "name": "🐷 Code Actions",
+          "type": "webview"
+        },
+        {
+          "id": "manifestoManagementPanel",
+          "name": "📋 Manifesto Management",
+          "type": "webview"
+        },
+        {
+          "id": "glossaryManagementPanel",
+          "name": "📖 Glossary Management",
+          "type": "webview"
         }
       ]
     },
     "menus": {
+      "commandPalette": [
+        {
+          "command": "manifestoEnforcer.openCodeActions"
+        },
+        {
+          "command": "manifestoEnforcer.openManifestoManagement"
+        },
+        {
+          "command": "manifestoEnforcer.openGlossaryManagement"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "manifestoEnforcer.openCodeActions",
+          "when": "view == piggieChatPanel",
+          "group": "navigation@1"
+        },
+        {
+          "command": "manifestoEnforcer.openManifestoManagement",
+          "when": "view == piggieChatPanel",
+          "group": "navigation@2"
+        },
+        {
+          "command": "manifestoEnforcer.openGlossaryManagement",
+          "when": "view == piggieChatPanel",
+          "group": "navigation@3"
+        }
+      ],
       "editor/context": [
         {
           "command": "manifestoEnforcer.reviewSelectedCode",
