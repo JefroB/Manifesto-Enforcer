@@ -1,8 +1,8 @@
 {
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
-  "description": "🐷 [ALPHA v0.0.74] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Old tree views removed, new webview system active. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.74-alpha",
+  "description": "🐷 [ALPHA v0.0.73] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Old tree views removed, new webview system active. ⚠️ Super early alpha - not user tested!",
+  "version": "0.0.73-alpha",
   "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",
