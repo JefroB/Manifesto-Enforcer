@@ -4,7 +4,7 @@
 
 **VSCode extension featuring Piggie 🐷, an AI agent that brings Auggie-level intelligence to your enterprise environment with Amazon Q optimization, automated MR/PR analysis, manifesto-compliant development, and team glossary management.**
 
-[![Version](https://img.shields.io/badge/version-0.0.7--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
+[![Version](https://img.shields.io/badge/version-0.0.74--alpha-blue.svg)](https://github.com/JefroB/Manifesto-Enforcer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Enterprise Ready](https://img.shields.io/badge/enterprise-ready-orange.svg)](#enterprise-features)
 
@@ -32,10 +32,12 @@ Generate professional coding standards for any project type in minutes:
 ```bash
 "Generate a React TypeScript manifesto"
 "Create Python data science standards"
-"Generate Node.js API development rules"
+"Generate Go microservices development rules"
+"Create Rust systems programming standards"
+"Generate Vue.js component development rules"
 ```
 
-**Supports:** Frontend (React, Vue, Angular), Backend (Node.js, Python, Java, C#, Go), Mobile (React Native, Flutter), Data Science, DevOps, and custom stacks.
+**Supports:** Frontend (React, Vue.js, Angular, Svelte), Backend (Node.js, Python, Ruby, PHP, Go, Java), Mobile (Flutter/Dart, Swift, Kotlin), Systems (C++, C, Rust, Zig, Nim), Data Science (Python, R, Julia, Scala), Hardware/IoT (Python, C#, C++), Functional (Haskell, Elixir), Web (HTML, CSS, SCSS, SQL), Scripting (Bash, PowerShell, Lua), and custom stacks.
 
 ### **🎮 Advanced Chat Commands**
 Full command system with natural language support:
@@ -45,7 +47,7 @@ Full command system with natural language support:
 **Natural Language:** All commands work with plain English - no syntax to memorize.
 
 ### **🧪 Test-Driven Development (TDD) Workflow**
-**NEW in v0.0.7-alpha:** Complete TDD enforcement with intelligent test generation:
+**NEW in v0.0.74-alpha:** Complete TDD enforcement with intelligent test generation:
 
 **🎯 TDD Mode Toggle:** Enable TDD mode in Piggie's chat panel with the `🧪 TDD` toggle
 **🎭 UI Testing Support:** Optional UI test generation with the `🎭 UI Tests` toggle
@@ -54,9 +56,9 @@ Full command system with natural language support:
 **📊 Test Execution:** Runs tests in VSCode terminal and captures results for verification
 
 **Supported Frameworks:**
-- **Unit Testing:** Jest, Mocha, Vitest, Jasmine
+- **Unit Testing:** Jest, Mocha, Vitest, Jasmine, PyTest, RSpec, PHPUnit, Hspec, ExUnit
 - **UI Testing:** Playwright, Cypress, Testing Library, Selenium
-- **Tech Stacks:** React, Vue, Angular, Node.js, Python, Java, and more
+- **Tech Stacks:** React, Vue.js, Angular, Svelte, Node.js, Python, Ruby, PHP, Go, Java, Flutter/Dart, Swift, Kotlin, C++, C, Rust, Zig, Nim, Haskell, Elixir, R, Julia, Scala, and more
 
 **Example TDD Workflow:**
 ```bash
@@ -82,7 +84,7 @@ Full command system with natural language support:
 ### **🤖 Multi-AI Support (Full Feature Parity)**
 **Amazon Q** (Enterprise), **Auggie** (Augment Code), **Ollama** (Local/Free) - all fully supported with auto-discovery and seamless switching. Fallback tools available when no AI configured.
 
-### **� Advanced Code Analysis & Diagnostics**
+### **🔍 Advanced Code Analysis & Diagnostics**
 **Real-time AST-based analysis with intelligent code actions**
 
 #### **🚨 Live Manifesto Compliance Checking**
@@ -106,7 +108,7 @@ Full command system with natural language support:
 **Security Scans:** XSS prevention, input validation, SQL injection, authentication checks
 **Compliance:** Manifesto adherence tracking, security metrics, quality scores, team dashboards
 
-### **�️ Smart File Management & Lifecycle**
+### **📁 Smart File Management & Lifecycle**
 **Intelligent file handling with AI response loop prevention**
 
 #### **📁 File Lifecycle Management**
@@ -175,7 +177,7 @@ Full command system with natural language support:
 
 ### **For Enterprise Teams:**
 1. **Download** the latest `.vsix` from releases
-2. **Install** via VSCode: `code --install-extension manifesto-enforcer-0.0.6-alpha.vsix`
+2. **Install** via VSCode: `code --install-extension manifesto-enforcer-0.0.74-alpha.vsix`
 3. **Configure** your company's manifesto.md
 4. **Index** your codebase for full intelligence
 5. **Customize** for your organization's specific needs
@@ -205,6 +207,10 @@ Full command system with natural language support:
 "Generate a TypeScript Node.js API manifesto"
 "Create Python data science coding standards"
 "Generate a React TypeScript frontend manifesto"
+"Create Go microservices development standards"
+"Generate Rust systems programming manifesto"
+"Create Ruby on Rails web application standards"
+"Generate C++ game development manifesto"
 
 # For teams:
 "Create enterprise-grade coding standards for our team"
@@ -244,7 +250,7 @@ Full command system with natural language support:
 ### **1. Basic Setup**
 ```bash
 # Install the extension
-code --install-extension manifesto-enforcer-0.0.7-alpha.vsix
+code --install-extension manifesto-enforcer-0.0.74-alpha.vsix
 
 # Open VSCode and look for the shield icon in the activity bar
 # Click "💬 Chat with Piggie" to start chatting with the AI agent
@@ -613,7 +619,7 @@ npm run compile
 npx vsce package
 
 # Install locally
-code --install-extension manifesto-enforcer-0.0.6-alpha.vsix
+code --install-extension manifesto-enforcer-0.0.74-alpha.vsix
 ```
 
 ### **Testing:**
@@ -645,12 +651,13 @@ We welcome enterprise contributions! This tool is designed to be customized for 
 
 ## 📊 Roadmap
 
-### **v0.0.61-alpha - CURRENT ✅**
+### **v0.0.74-alpha - CURRENT ✅**
 - [x] **Multi-AI Support** (Amazon Q, Auggie, Ollama with full feature parity)
 - [x] **Advanced Chat Commands** (/lint, /edit, /graph, /glossary, /manifesto, /code, /cleanup)
 - [x] **Comprehensive UI System** (Activity Bar, Context Menus, Status Bar, Tree Views)
 - [x] **Real-time AST-based Diagnostics** with intelligent quick fixes
 - [x] **Smart File Lifecycle Management** with AI response loop prevention
+- [x] **TDD Workflow Support** with automated test generation and execution
 - [x] **Persistent Chat & State Management** with conversation history
 - [x] **Enterprise Security Features** (automated scans, compliance reporting)
 - [x] **Intelligent Manifesto Generation** for any project type or technology
@@ -691,6 +698,15 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **Enterprise Support**: Contact for custom enterprise features
 
 ## 📋 Changelog
+
+### v0.0.74-alpha (2025-08-14)
+**🚀 STABILITY & RELIABILITY IMPROVEMENTS**
+
+#### **🛠️ Enhanced Reliability**
+- **Improved Project Type Detection**: More accurate language/framework detection across all scenarios
+- **Enhanced Error Handling**: Better graceful degradation and comprehensive error coverage
+- **Optimized Performance**: Faster extension startup and improved responsiveness
+- **Refined StorageService**: More robust file operations and data persistence
 
 ### v0.0.61-alpha (2025-08-10)
 **🏗️ Critical Infrastructure & Reliability Improvements**

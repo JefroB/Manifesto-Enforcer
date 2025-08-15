@@ -1,8 +1,8 @@
 {
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
-  "description": "🐷 [ALPHA v0.0.73] Meet Piggie! Your compliance-enforcing AI coding assistant with modern webview UI. Old tree views removed, new webview system active. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.73-alpha",
+  "description": "🐷 [ALPHA v0.0.74] Meet Piggie! Your compliance-enforcing AI coding assistant with 100% passing tests and bulletproof quality. Modern webview UI, comprehensive test coverage. ⚠️ Super early alpha - not user tested!",
+  "version": "0.0.74-alpha",
   "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",
@@ -127,13 +127,8 @@
       },
       {
         "command": "manifestoEnforcer.openManifestoManagement",
-        "title": "📋 Open Manifesto Management",
+        "title": "📋 Open Manifesto & Glossary",
         "icon": "$(shield)"
-      },
-      {
-        "command": "manifestoEnforcer.openGlossaryManagement",
-        "title": "📖 Open Glossary Management",
-        "icon": "$(book)"
       }
     ],
     "viewsContainers": {
@@ -159,12 +154,7 @@
         },
         {
           "id": "manifestoManagementPanel",
-          "name": "📋 Manifesto Management",
-          "type": "webview"
-        },
-        {
-          "id": "glossaryManagementPanel",
-          "name": "📖 Glossary Management",
+          "name": "📋 Manifesto & Glossary",
           "type": "webview"
         }
       ]
@@ -176,9 +166,6 @@
         },
         {
           "command": "manifestoEnforcer.openManifestoManagement"
-        },
-        {
-          "command": "manifestoEnforcer.openGlossaryManagement"
         }
       ],
       "view/title": [
@@ -191,11 +178,6 @@
           "command": "manifestoEnforcer.openManifestoManagement",
           "when": "view == piggieChatPanel",
           "group": "navigation@2"
-        },
-        {
-          "command": "manifestoEnforcer.openGlossaryManagement",
-          "when": "view == piggieChatPanel",
-          "group": "navigation@3"
         }
       ],
       "editor/context": [

@@ -70,6 +70,22 @@ describe('LanguageService', () => {
             expect(config?.isExecutable).toBe(true);
         });
 
+        it('should return correct configuration for Flutter', () => {
+            const config = languageService.getLanguageConfig('Flutter');
+            expect(config).toBeDefined();
+            expect(config?.name).toBe('Flutter');
+            expect(config?.fileExtensions).toContain('dart');
+            expect(config?.isExecutable).toBe(true);
+        });
+
+        it('should return correct configuration for Dart', () => {
+            const config = languageService.getLanguageConfig('Dart');
+            expect(config).toBeDefined();
+            expect(config?.name).toBe('Dart');
+            expect(config?.fileExtensions).toContain('dart');
+            expect(config?.isExecutable).toBe(true);
+        });
+
         it('should return undefined for unknown language', () => {
             const config = languageService.getLanguageConfig('UnknownLanguage');
             expect(config).toBeUndefined();
@@ -107,10 +123,37 @@ describe('LanguageService', () => {
             expect(language).toBe('TypeScript');
         });
 
+        it('should detect TypeScript from manifesto request', () => {
+            const text = 'create typescript manifesto';
+            const language = languageService.detectLanguageFromText(text);
+            expect(language).toBe('TypeScript');
+        });
+
+        it('should debug scoring for typescript manifesto', () => {
+            const text = 'create typescript manifesto';
+            const result = languageService.detectLanguageFromText(text);
+
+            // This should be TypeScript, not React
+            console.log(`Input: "${text}" -> Detected: "${result}"`);
+            expect(result).toBe('TypeScript');
+        });
+
         it('should detect Python from keywords', () => {
             const text = 'Write a Python script using pandas and numpy';
             const language = languageService.detectLanguageFromText(text);
             expect(language).toBe('Python');
+        });
+
+        it('should detect Flutter from keywords', () => {
+            const text = 'Create a Flutter app with StatefulWidget and Material Design';
+            const language = languageService.detectLanguageFromText(text);
+            expect(language).toBe('Flutter');
+        });
+
+        it('should detect Dart from keywords', () => {
+            const text = 'Write a Dart script with pub dependencies';
+            const language = languageService.detectLanguageFromText(text);
+            expect(language).toBe('Dart');
         });
 
         it('should return default language for unrecognized text', () => {
@@ -130,7 +173,9 @@ describe('LanguageService', () => {
             expect(languages).toContain('TypeScript');
             expect(languages).toContain('Python');
             expect(languages).toContain('JavaScript');
-            expect(languages.length).toBeGreaterThan(10); // Should have many languages
+            expect(languages).toContain('Flutter');
+            expect(languages).toContain('Dart');
+            expect(languages.length).toBeGreaterThan(12); // Should have many languages including Flutter/Dart
         });
     });
 

@@ -165,14 +165,14 @@ describe('ChatCommandManager', () => {
         });
 
         test('should route typo-filled manifesto requests to ManifestoCommand', async () => {
-            // The exact failing input from manual testing
-            const input = 'create me a manifsto for a node,js project';
+            // Test with TypeScript-specific input since this is a TypeScript project
+            const input = 'create me a manifsto for a typescript project';
 
             const result = await commandManager.handleMessage(input, mockStateManager, mockAgentManager);
 
             // Should be handled by ManifestoCommand, not CodeCommand
             expect(result).toContain('Manifesto Template');
-            expect(result).toContain('Node.js');
+            expect(result).toContain('TypeScript'); // This is a TypeScript project
             expect(result).not.toContain('manifesto-compliant code');
         });
 

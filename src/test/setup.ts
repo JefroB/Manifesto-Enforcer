@@ -129,6 +129,18 @@ const mockVSCode = {
     Workspace: 2,
     WorkspaceFolder: 3
   },
+  ExtensionMode: {
+    Production: 1,
+    Development: 2,
+    Test: 3
+  },
+  ViewColumn: {
+    One: 1,
+    Two: 2,
+    Three: 3,
+    Active: -1,
+    Beside: -2
+  },
   CodeActionKind: {
     QuickFix: 'quickfix',
     SourceFixAll: 'source.fixAll'

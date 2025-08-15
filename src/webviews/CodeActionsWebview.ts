@@ -181,9 +181,23 @@ export class CodeActionsWebview {
                             cursor: not-allowed;
                             opacity: 0.6;
                         }
+                        .send-ai-section {
+                            display: flex;
+                            gap: 10px;
+                            align-items: center;
+                            margin-top: 10px;
+                        }
+                        .send-ai-section select {
+                            flex: 1;
+                            padding: 6px;
+                            background-color: var(--vscode-dropdown-background);
+                            color: var(--vscode-dropdown-foreground);
+                            border: 1px solid var(--vscode-dropdown-border);
+                            border-radius: 3px;
+                        }
                         .send-to-ai {
                             background-color: var(--vscode-textLink-foreground);
-                            margin-top: 10px;
+                            margin: 0;
                         }
                         .send-to-ai:hover:not(:disabled) {
                             background-color: var(--vscode-textLink-activeForeground);
@@ -200,14 +214,6 @@ export class CodeActionsWebview {
                         ${this.hasSelection ? '✅ Code selected' : '⚠️ Select code in editor to enable actions'}
                     </div>
 
-                    <div class="agent-section">
-                        <select id="agentDropdown">
-                            ${availableAgents.map(agent =>
-                                `<option value="${agent}" ${agent === currentAgent ? 'selected' : ''}>${agent}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-
                     <div class="actions-section">
                         <div class="action-buttons">
                             <button id="reviewBtn" ${buttonsDisabled}>🐷 Review</button>
@@ -215,6 +221,11 @@ export class CodeActionsWebview {
                             <button id="explainBtn" ${buttonsDisabled}>🐷 Explain</button>
                         </div>
                         <div class="send-ai-section">
+                            <select id="agentDropdown">
+                                ${availableAgents.map(agent =>
+                                    `<option value="${agent}" ${agent === currentAgent ? 'selected' : ''}>${agent}</option>`
+                                ).join('')}
+                            </select>
                             <button id="sendToAIBtn" class="send-to-ai" ${buttonsDisabled}>🐷 Send to AI</button>
                         </div>
                     </div>

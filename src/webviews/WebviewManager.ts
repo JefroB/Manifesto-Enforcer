@@ -9,7 +9,6 @@ import { StateManager } from '../core/StateManager';
 import { AgentManager } from '../agents/AgentManager';
 import { CodeActionsWebview } from './CodeActionsWebview';
 import { ManifestoWebview } from './ManifestoWebview';
-import { GlossaryWebview } from './GlossaryWebview';
 
 /**
  * Centralized manager for all webview instances
@@ -23,7 +22,6 @@ export class WebviewManager {
     // Webview instances - only one of each type allowed
     private codeActionsWebview: CodeActionsWebview | undefined;
     private manifestoWebview: ManifestoWebview | undefined;
-    private glossaryWebview: GlossaryWebview | undefined;
 
     /**
      * Constructor
@@ -108,34 +106,7 @@ export class WebviewManager {
         }
     }
 
-    /**
-     * Open or focus Glossary Management webview
-     * MANDATORY: Comprehensive error handling (manifesto requirement)
-     */
-    public async openGlossaryManagement(): Promise<void> {
-        try {
-            if (this.glossaryWebview && this.glossaryWebview.panel) {
-                // Focus existing webview
-                this.glossaryWebview.panel.reveal();
-                return;
-            }
 
-            // Create new webview
-            this.glossaryWebview = new GlossaryWebview(this.context, this.stateManager);
-            
-            // Handle disposal
-            if (this.glossaryWebview.panel) {
-                this.glossaryWebview.panel.onDidDispose(() => {
-                    this.glossaryWebview = undefined;
-                }, null, this.context.subscriptions);
-            }
-
-            vscode.window.showInformationMessage('📖 Glossary Management panel opened');
-        } catch (error) {
-            console.error('Failed to open Glossary Management webview:', error);
-            vscode.window.showErrorMessage(`Failed to open Glossary Management: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-    }
 
     /**
      * Get active webview instances count
@@ -146,7 +117,6 @@ export class WebviewManager {
             let count = 0;
             if (this.codeActionsWebview && this.codeActionsWebview.panel) count++;
             if (this.manifestoWebview && this.manifestoWebview.panel) count++;
-            if (this.glossaryWebview && this.glossaryWebview.panel) count++;
             return count;
         } catch (error) {
             console.error('Failed to get active webview count:', error);
@@ -165,9 +135,6 @@ export class WebviewManager {
             }
             if (this.manifestoWebview && this.manifestoWebview.panel) {
                 this.manifestoWebview.refreshContent();
-            }
-            if (this.glossaryWebview && this.glossaryWebview.panel) {
-                this.glossaryWebview.refreshTable();
             }
         } catch (error) {
             console.error('Failed to refresh webviews:', error);
@@ -227,10 +194,6 @@ export class WebviewManager {
                 this.manifestoWebview.dispose();
                 this.manifestoWebview = undefined;
             }
-            if (this.glossaryWebview) {
-                this.glossaryWebview.dispose();
-                this.glossaryWebview = undefined;
-            }
         } catch (error) {
             console.error('Failed to dispose webviews:', error);
         }
@@ -268,21 +231,7 @@ export class WebviewManager {
         }
     }
 
-    /**
-     * Setup Glossary Management webview view (for sidebar panel)
-     * MANDATORY: Comprehensive error handling (manifesto requirement)
-     */
-    public setupGlossaryManagementView(webviewView: vscode.WebviewView): void {
-        try {
-            if (!this.glossaryWebview) {
-                this.glossaryWebview = new GlossaryWebview(this.context, this.stateManager);
-            }
-            this.glossaryWebview.setupView(webviewView);
-        } catch (error) {
-            console.error('Failed to setup Glossary Management view:', error);
-            throw new Error(`Glossary Management view setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-    }
+
 
     /**
      * Get webview status for debugging
@@ -292,15 +241,13 @@ export class WebviewManager {
         try {
             return {
                 codeActions: !!(this.codeActionsWebview && this.codeActionsWebview.panel),
-                manifestoManagement: !!(this.manifestoWebview && this.manifestoWebview.panel),
-                glossaryManagement: !!(this.glossaryWebview && this.glossaryWebview.panel)
+                manifestoManagement: !!(this.manifestoWebview && this.manifestoWebview.panel)
             };
         } catch (error) {
             console.error('Failed to get webview status:', error);
             return {
                 codeActions: false,
-                manifestoManagement: false,
-                glossaryManagement: false
+                manifestoManagement: false
             };
         }
     }

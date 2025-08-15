@@ -194,12 +194,12 @@ export class StateManager {
         try {
             const config = vscode.workspace.getConfiguration('manifestoEnforcer');
             
-            // Load manifesto mode setting (legacy boolean support)
-            this._isManifestoMode = config.get<boolean>('manifestoMode', true);
-
             // Load new manifesto mode enum setting
             const manifestoModeValue = config.get<string>('manifestoMode', 'developer');
             this._manifestoMode = this.validateManifestoMode(manifestoModeValue);
+
+            // Set isManifestoMode based on whether we have a valid manifesto mode
+            this._isManifestoMode = this._manifestoMode !== null && this._manifestoMode !== undefined;
 
             // Load manifesto file paths with validation
             const devPath = config.get<string>('devManifestoPath', 'manifesto-dev.md');
@@ -1084,7 +1084,10 @@ export class StateManager {
         if (validModes.includes(value as any)) {
             return value as 'developer' | 'qa' | 'solo';
         }
-        throw new Error('Invalid manifesto mode');
+
+        // Default to 'developer' for invalid values instead of throwing
+        console.warn(`Invalid manifesto mode '${value}', defaulting to 'developer'`);
+        return 'developer';
     }
 
     /**

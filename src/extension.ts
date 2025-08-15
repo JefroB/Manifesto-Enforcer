@@ -130,11 +130,6 @@ export function activate(context: vscode.ExtensionContext) {
                     resolveWebviewView: (webviewView) => {
                         webviewManager.setupManifestoManagementView(webviewView);
                     }
-                }),
-                vscode.window.registerWebviewViewProvider('glossaryManagementPanel', {
-                    resolveWebviewView: (webviewView) => {
-                        webviewManager.setupGlossaryManagementView(webviewView);
-                    }
                 })
             );
             console.log('✅ All webview view providers registered successfully');
@@ -239,14 +234,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }),
 
-            vscode.commands.registerCommand('manifestoEnforcer.openGlossaryManagement', async () => {
-                try {
-                    await webviewManager.openGlossaryManagement();
-                } catch (error) {
-                    console.error('Failed to open Glossary Management webview:', error);
-                    vscode.window.showErrorMessage('Failed to open Glossary Management panel');
-                }
-            }),
+
 
             vscode.commands.registerCommand('manifestoEnforcer.switchAgent', async (agentName?: string) => {
                 try {
@@ -647,7 +635,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('Failed to activate Manifesto Enforcer: ' + error);
 
         // CRITICAL: Return API object for testing even on error, undefined for production
-        const isVSCodeTest = context && context.extensionMode === vscode.ExtensionMode.Test;
+        const isVSCodeTest = context && context.extensionMode === (vscode.ExtensionMode?.Test || 3);
         const shouldReturnApi = process.env.PIGGIE_RETURN_API === 'true' || isVSCodeTest;
 
         if (shouldReturnApi) {

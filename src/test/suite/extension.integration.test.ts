@@ -60,9 +60,8 @@ suite('Extension Integration Tests', () => {
                 'manifestoEnforcer.reviewSelectedCode',
                 'manifestoEnforcer.refactorSelectedCode',
                 'manifestoEnforcer.explainSelectedCode',
-                'manifestoEnforcer.sendToAmazonQ',
-                'manifestoEnforcer.refreshManifesto',
-                'manifestoEnforcer.refreshGlossary'
+                'manifestoEnforcer.sendToAmazonQ'
+                // Note: refreshManifesto and refreshGlossary commands don't exist
             ];
 
             for (const command of expectedCommands) {
@@ -73,10 +72,10 @@ suite('Extension Integration Tests', () => {
         test('Commands should be executable', async () => {
             // Test a safe command that doesn't require user interaction
             try {
-                await vscode.commands.executeCommand('manifestoEnforcer.refreshManifesto');
-                assert.ok(true, 'refreshManifesto command should execute without error');
+                await vscode.commands.executeCommand('manifestoEnforcer.toggleManifestoMode');
+                assert.ok(true, 'toggleManifestoMode command should execute without error');
             } catch (error) {
-                assert.fail(`refreshManifesto command failed: ${error}`);
+                assert.fail(`toggleManifestoMode command failed: ${error}`);
             }
         });
     });

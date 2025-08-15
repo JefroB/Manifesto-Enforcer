@@ -8,7 +8,6 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { CodeActionsWebview } from '../../webviews/CodeActionsWebview';
 import { ManifestoWebview } from '../../webviews/ManifestoWebview';
-import { GlossaryWebview } from '../../webviews/GlossaryWebview';
 import { StateManager } from '../../core/StateManager';
 import { AgentManager } from '../../agents/AgentManager';
 
@@ -153,84 +152,14 @@ suite('Webview Components Unit Tests', () => {
         });
     });
 
-    suite('GlossaryWebview', () => {
-        test('should initialize with valid parameters', () => {
-            try {
-                const webview = new GlossaryWebview(context, stateManager);
-                assert.ok(webview, 'GlossaryWebview should be created');
-                assert.ok(webview.stateManager, 'StateManager should be accessible');
-            } catch (error) {
-                assert.fail(`GlossaryWebview initialization failed: ${error}`);
-            }
-        });
-
-        test('should throw error with invalid parameters', () => {
-            assert.throws(() => {
-                new GlossaryWebview(null as any, stateManager);
-            }, /Invalid parameters provided/);
-
-            assert.throws(() => {
-                new GlossaryWebview(context, null as any);
-            }, /Invalid parameters provided/);
-        });
-
-        test('should setup webview view properly', () => {
-            try {
-                const webview = new GlossaryWebview(context, stateManager);
-                const mockWebviewView = {
-                    webview: {
-                        options: {},
-                        html: '',
-                        onDidReceiveMessage: () => ({ dispose: () => {} })
-                    }
-                } as any;
-
-                webview.setupView(mockWebviewView);
-                assert.ok(mockWebviewView.webview.html, 'HTML content should be set');
-                assert.ok(mockWebviewView.webview.options.enableScripts, 'Scripts should be enabled');
-            } catch (error) {
-                assert.fail(`GlossaryWebview setupView failed: ${error}`);
-            }
-        });
-
-        test('should handle refresh content', () => {
-            try {
-                const webview = new GlossaryWebview(context, stateManager);
-                webview.refreshContent();
-                // Should not throw error
-                assert.ok(true, 'refreshContent should execute without error');
-            } catch (error) {
-                assert.fail(`GlossaryWebview refreshContent failed: ${error}`);
-            }
-        });
-
-        test('should handle glossary operations', () => {
-            try {
-                const webview = new GlossaryWebview(context, stateManager);
-
-                // Test that webview can access glossary data
-                assert.ok(webview.stateManager.projectGlossary, 'Should have access to project glossary');
-
-                // Test that webview initializes with glossary data
-                const initialTermCount = webview.stateManager.projectGlossary.size;
-                assert.ok(initialTermCount >= 0, 'Should have valid term count');
-
-                // Test refresh content method
-                webview.refreshContent();
-                assert.ok(true, 'refreshContent should execute without error');
-
-            } catch (error) {
-                assert.fail(`GlossaryWebview glossary operations failed: ${error}`);
-            }
-        });
-    });
+    // Note: GlossaryWebview suite removed - functionality now integrated into ManifestoWebview
 
     suite('Webview Error Handling', () => {
         test('should handle setupView with invalid webview view', () => {
             const webviews = [
                 new CodeActionsWebview(context, stateManager, agentManager),
-                new ManifestoWebview(context, stateManager),
-                new GlossaryWebview(context, stateManager)
+                new ManifestoWebview(context, stateManager)
+                // Note: GlossaryWebview is now integrated into ManifestoWebview
             ];
 
             for (const webview of webviews) {
@@ -244,8 +173,8 @@ suite('Webview Components Unit Tests', () => {
             try {
                 const webviews = [
                     new CodeActionsWebview(context, stateManager, agentManager),
-                    new ManifestoWebview(context, stateManager),
-                    new GlossaryWebview(context, stateManager)
+                    new ManifestoWebview(context, stateManager)
+                    // Note: GlossaryWebview is now integrated into ManifestoWebview
                 ];
 
                 for (const webview of webviews) {
@@ -266,14 +195,23 @@ suite('Webview Components Unit Tests', () => {
             try {
                 const webviews = [
                     new CodeActionsWebview(context, stateManager, agentManager),
-                    new ManifestoWebview(context, stateManager),
-                    new GlossaryWebview(context, stateManager)
+                    new ManifestoWebview(context, stateManager)
+                    // Note: GlossaryWebview is now integrated into ManifestoWebview
                 ];
 
                 for (const webview of webviews) {
                     assert.ok(webview.stateManager, 'Should have StateManager reference');
                     assert.ok(webview.stateManager.projectGlossary, 'Should have access to project glossary');
-                    assert.ok(typeof webview.stateManager.isManifestoMode === 'boolean', 'Should have access to manifesto mode');
+
+                    // Check if isManifestoMode exists and is a boolean
+                    const isManifestoMode = webview.stateManager.isManifestoMode;
+                    assert.ok(isManifestoMode !== undefined, `Should have isManifestoMode property, got: ${isManifestoMode}`);
+                    assert.ok(typeof isManifestoMode === 'boolean', `Should have boolean isManifestoMode, got type: ${typeof isManifestoMode}, value: ${isManifestoMode}`);
+
+                    // Also check the manifestoMode enum property
+                    const manifestoMode = webview.stateManager.manifestoMode;
+                    assert.ok(manifestoMode !== undefined, `Should have manifestoMode property, got: ${manifestoMode}`);
+                    assert.ok(['developer', 'qa', 'solo'].includes(manifestoMode), `Should have valid manifestoMode, got: ${manifestoMode}`);
                 }
             } catch (error) {
                 assert.fail(`StateManager integration test failed: ${error}`);

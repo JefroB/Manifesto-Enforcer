@@ -14,7 +14,17 @@ jest.mock('vscode', () => ({
     workspace: {
         workspaceFolders: [{ uri: { fsPath: '/test/workspace' } }],
         getConfiguration: jest.fn().mockReturnValue({
-            get: jest.fn().mockReturnValue(undefined),
+            get: jest.fn().mockImplementation((key: string) => {
+                // Provide default values for required settings
+                switch (key) {
+                    case 'manifestoMode': return 'developer';
+                    case 'devManifestoPath': return 'manifesto-dev.md';
+                    case 'qaManifestoPath': return 'manifesto-qa.md';
+                    case 'soloManifestoPath': return 'manifesto.md';
+                    case 'autoMode': return false;
+                    default: return undefined;
+                }
+            }),
             update: jest.fn().mockResolvedValue(undefined)
         }),
         findFiles: jest.fn().mockResolvedValue([])

@@ -17,6 +17,11 @@ export class ManifestoWebview {
     private context: vscode.ExtensionContext;
     private currentTab: string = 'manifesto';
 
+    // Glossary-related properties
+    private searchQuery: string = '';
+    private sortColumn: string = 'term';
+    private sortDirection: 'asc' | 'desc' = 'asc';
+
     /**
      * Constructor
      * MANDATORY: Input validation (manifesto requirement)
@@ -256,6 +261,114 @@ export class ManifestoWebview {
                             border: 1px solid var(--vscode-input-border);
                             border-radius: 3px;
                         }
+
+                        /* Glossary Styles */
+                        .glossary-toolbar {
+                            margin-bottom: 20px;
+                        }
+                        .top-actions {
+                            display: flex;
+                            gap: 10px;
+                            margin-bottom: 10px;
+                            align-items: center;
+                        }
+                        .top-actions input {
+                            flex: 1;
+                            padding: 6px;
+                            background-color: var(--vscode-input-background);
+                            color: var(--vscode-input-foreground);
+                            border: 1px solid var(--vscode-input-border);
+                            border-radius: 3px;
+                        }
+                        .sort-section {
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                        }
+                        .sort-section label {
+                            font-size: 12px;
+                            color: var(--vscode-descriptionForeground);
+                        }
+                        .sort-section select {
+                            padding: 4px;
+                            background-color: var(--vscode-dropdown-background);
+                            color: var(--vscode-dropdown-foreground);
+                            border: 1px solid var(--vscode-dropdown-border);
+                            border-radius: 3px;
+                        }
+                        .glossary-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 10px;
+                        }
+                        .glossary-table th,
+                        .glossary-table td {
+                            padding: 8px;
+                            text-align: left;
+                            border-bottom: 1px solid var(--vscode-panel-border);
+                        }
+                        .glossary-table th {
+                            background-color: var(--vscode-editor-background);
+                            font-weight: bold;
+                            cursor: pointer;
+                        }
+                        .glossary-table th:hover {
+                            background-color: var(--vscode-list-hoverBackground);
+                        }
+                        .term-actions {
+                            display: flex;
+                            gap: 5px;
+                        }
+                        .term-actions button {
+                            padding: 2px 6px;
+                            font-size: 11px;
+                        }
+                        .modal {
+                            display: none;
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background-color: rgba(0, 0, 0, 0.5);
+                            z-index: 1000;
+                        }
+                        .modal-content {
+                            background-color: var(--vscode-editor-background);
+                            margin: 15% auto;
+                            padding: 20px;
+                            border: 1px solid var(--vscode-panel-border);
+                            border-radius: 5px;
+                            width: 80%;
+                            max-width: 500px;
+                        }
+                        .form-group {
+                            margin-bottom: 15px;
+                        }
+                        .form-group label {
+                            display: block;
+                            margin-bottom: 5px;
+                            font-weight: bold;
+                        }
+                        .form-group input,
+                        .form-group textarea {
+                            width: 100%;
+                            padding: 8px;
+                            background-color: var(--vscode-input-background);
+                            color: var(--vscode-input-foreground);
+                            border: 1px solid var(--vscode-input-border);
+                            border-radius: 3px;
+                        }
+                        .form-group textarea {
+                            height: 80px;
+                            resize: vertical;
+                        }
+                        .modal-actions {
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 10px;
+                            margin-top: 20px;
+                        }
                     </style>
                 </head>
                 <body>
@@ -311,18 +424,66 @@ export class ManifestoWebview {
                             </div>
                         </div>
 
-                        <div class="settings-panel">
-                            <h3>Admin Settings:</h3>
-                            <div class="settings-buttons">
-                                <button id="testConnection">Test Connection</button>
-                                <button id="discoverAPIs">Discover APIs</button>
-                            </div>
-                        </div>
+
                     </div>
 
                     <div id="content-glossary" class="tab-content ${this.currentTab === 'glossary' ? 'active' : ''}">
-                        <h3>Glossary Management</h3>
-                        <p>Glossary functionality will be implemented in Phase 4.</p>
+                        <div class="glossary-toolbar">
+                            <div class="top-actions">
+                                <input type="text" id="searchInput" placeholder="Search" value="${this.searchQuery || ''}">
+                                <button id="addTermBtn" class="primary">Add Term</button>
+                                <button id="importBtn">Import</button>
+                                <button id="exportBtn">Export</button>
+                            </div>
+                            <div class="sort-section">
+                                <label>Sort by:</label>
+                                <select id="sortDropdown">
+                                    <option value="usage" ${this.sortColumn === 'usage' ? 'selected' : ''}>Usage</option>
+                                    <option value="term" ${this.sortColumn === 'term' ? 'selected' : ''}>Term</option>
+                                    <option value="definition" ${this.sortColumn === 'definition' ? 'selected' : ''}>Definition</option>
+                                    <option value="category" ${this.sortColumn === 'category' ? 'selected' : ''}>Category</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <table class="glossary-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortColumn('term')">Term</th>
+                                    <th onclick="sortColumn('definition')">Definition</th>
+                                    <th onclick="sortColumn('usage')">Used</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.getGlossaryTermsHtml()}
+                            </tbody>
+                        </table>
+
+                        <!-- Add/Edit Term Modal -->
+                        <div id="termModal" class="modal">
+                            <div class="modal-content">
+                                <h3 id="modalTitle">Add Term</h3>
+                                <form id="termForm">
+                                    <div class="form-group">
+                                        <label for="termInput">Term:</label>
+                                        <input type="text" id="termInput" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="definitionInput">Definition:</label>
+                                        <textarea id="definitionInput" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="categoryInput">Category:</label>
+                                        <input type="text" id="categoryInput" required>
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button type="button" onclick="closeModal()">Cancel</button>
+                                        <button type="submit" class="primary">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
 
                     <script>
@@ -675,6 +836,43 @@ export class ManifestoWebview {
             }
         } catch (error) {
             console.error('Failed to refresh webview content:', error);
+        }
+    }
+
+    /**
+     * Generate HTML for glossary terms table
+     * MANDATORY: Comprehensive error handling (manifesto requirement)
+     */
+    private getGlossaryTermsHtml(): string {
+        try {
+            const glossaryTerms = Array.from(this.stateManager.projectGlossary.entries()).map(([term, definition]) => ({
+                id: term,
+                term,
+                definition,
+                category: 'General',
+                usageCount: 0
+            }));
+
+            if (glossaryTerms.length === 0) {
+                return '<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--vscode-descriptionForeground);">No glossary terms found. Click "Add Term" to get started.</td></tr>';
+            }
+
+            return glossaryTerms.map(term => `
+                <tr data-id="${term.id}">
+                    <td>${term.term}</td>
+                    <td>${term.definition}</td>
+                    <td>${term.usageCount}x</td>
+                    <td>
+                        <div class="term-actions">
+                            <button onclick="editTerm('${term.id}')">Edit</button>
+                            <button onclick="deleteTerm('${term.id}')" class="danger">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Failed to generate glossary terms HTML:', error);
+            return '<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--vscode-errorForeground);">Error loading glossary terms</td></tr>';
         }
     }
 

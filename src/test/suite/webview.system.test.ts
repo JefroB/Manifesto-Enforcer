@@ -103,13 +103,13 @@ suite('Webview System Integration Tests', () => {
             }
         });
 
-        test('should create Glossary Management webview panel', async () => {
+        test('should create Manifesto Management webview panel (includes glossary)', async () => {
             try {
-                await webviewManager.openGlossaryManagement();
+                await webviewManager.openManifestoManagement();
                 const status = webviewManager.getStatus();
-                assert.strictEqual(status.glossaryManagement, true, 'Glossary Management webview should be active');
+                assert.strictEqual(status.manifestoManagement, true, 'Manifesto Management webview should be active');
             } catch (error) {
-                assert.fail(`Failed to create Glossary Management webview: ${error}`);
+                assert.fail(`Failed to create Manifesto Management webview: ${error}`);
             }
         });
 
@@ -177,11 +177,11 @@ suite('Webview System Integration Tests', () => {
                     }
                 } as any;
 
-                webviewManager.setupGlossaryManagementView(mockWebviewView);
+                webviewManager.setupManifestoManagementView(mockWebviewView);
                 assert.ok(mockWebviewView.webview.html, 'Webview HTML should be set');
                 assert.ok(mockWebviewView.webview.options.enableScripts, 'Scripts should be enabled');
             } catch (error) {
-                assert.fail(`Failed to setup Glossary Management view: ${error}`);
+                assert.fail(`Failed to setup Manifesto Management view: ${error}`);
             }
         });
 
@@ -195,7 +195,7 @@ suite('Webview System Integration Tests', () => {
             }, /Invalid webview view provided/);
 
             assert.throws(() => {
-                webviewManager.setupGlossaryManagementView(null as any);
+                webviewManager.setupManifestoManagementView(null as any);
             }, /Invalid webview view provided/);
         });
     });
@@ -242,7 +242,7 @@ suite('Webview System Integration Tests', () => {
             assert.ok(typeof status === 'object', 'Status should be an object');
             assert.ok('codeActions' in status, 'Status should include codeActions');
             assert.ok('manifestoManagement' in status, 'Status should include manifestoManagement');
-            assert.ok('glossaryManagement' in status, 'Status should include glossaryManagement');
+            // Note: glossaryManagement is now integrated into manifestoManagement
         });
 
         test('should dispose all webviews properly', () => {
@@ -251,7 +251,7 @@ suite('Webview System Integration Tests', () => {
                 const status = webviewManager.getStatus();
                 assert.strictEqual(status.codeActions, false, 'Code Actions should be disposed');
                 assert.strictEqual(status.manifestoManagement, false, 'Manifesto Management should be disposed');
-                assert.strictEqual(status.glossaryManagement, false, 'Glossary Management should be disposed');
+                // Note: glossaryManagement is now integrated into manifestoManagement
             } catch (error) {
                 assert.fail(`Webview disposal failed: ${error}`);
             }

@@ -50,17 +50,7 @@ suite('Webview Commands Integration Tests', () => {
             }
         });
 
-        test('should register openGlossaryManagement command', async () => {
-            try {
-                const commands = await vscode.commands.getCommands(true);
-                assert.ok(
-                    commands.includes('manifestoEnforcer.openGlossaryManagement'),
-                    'openGlossaryManagement command should be registered'
-                );
-            } catch (error) {
-                assert.fail(`Failed to check openGlossaryManagement command: ${error}`);
-            }
-        });
+        // Note: openGlossaryManagement is now integrated into openManifestoManagement
     });
 
     suite('Command Execution', () => {
@@ -84,15 +74,7 @@ suite('Webview Commands Integration Tests', () => {
             }
         });
 
-        test('should execute openGlossaryManagement command without error', async () => {
-            try {
-                await vscode.commands.executeCommand('manifestoEnforcer.openGlossaryManagement');
-                // If we get here, the command executed without throwing
-                assert.ok(true, 'openGlossaryManagement command should execute successfully');
-            } catch (error) {
-                assert.fail(`openGlossaryManagement command execution failed: ${error}`);
-            }
-        });
+        // Note: openGlossaryManagement is now integrated into openManifestoManagement
     });
 
     suite('Command Palette Integration', () => {
@@ -103,8 +85,8 @@ suite('Webview Commands Integration Tests', () => {
                 
                 const webviewCommands = [
                     'manifestoEnforcer.openCodeActions',
-                    'manifestoEnforcer.openManifestoManagement',
-                    'manifestoEnforcer.openGlossaryManagement'
+                    'manifestoEnforcer.openManifestoManagement'
+                    // Note: openGlossaryManagement is now integrated into openManifestoManagement
                 ];
 
                 for (const command of webviewCommands) {
@@ -185,8 +167,7 @@ suite('Webview Commands Integration Tests', () => {
                 await vscode.commands.executeCommand('manifestoEnforcer.openManifestoManagement');
                 await vscode.commands.executeCommand('manifestoEnforcer.openManifestoManagement'); // Second call should reuse
                 
-                await vscode.commands.executeCommand('manifestoEnforcer.openGlossaryManagement');
-                await vscode.commands.executeCommand('manifestoEnforcer.openGlossaryManagement'); // Second call should reuse
+                // Note: openGlossaryManagement is now integrated into openManifestoManagement
                 
                 assert.ok(true, 'Multiple command executions should be handled gracefully');
             } catch (error) {
