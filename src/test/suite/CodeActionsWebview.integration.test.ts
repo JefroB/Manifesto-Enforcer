@@ -30,12 +30,44 @@ suite('Code Actions Webview Integration Tests', () => {
             subscriptions: [],
             workspaceState: {
                 get: () => undefined,
-                update: () => Promise.resolve()
+                update: () => Promise.resolve(),
+                keys: () => []
             },
             globalState: {
                 get: () => undefined,
                 update: () => Promise.resolve(),
-                setKeysForSync: () => {}
+                setKeysForSync: () => {},
+                keys: () => []
+            },
+            secrets: {
+                get: () => Promise.resolve(undefined),
+                store: () => Promise.resolve(),
+                delete: () => Promise.resolve(),
+                onDidChange: new vscode.EventEmitter().event
+            },
+            environmentVariableCollection: {
+                persistent: true,
+                description: 'Test',
+                replace: () => {},
+                append: () => {},
+                prepend: () => {},
+                get: () => undefined,
+                forEach: () => {},
+                delete: () => {},
+                clear: () => {},
+                getScoped: () => ({
+                    persistent: true,
+                    description: 'Scoped Test',
+                    replace: () => {},
+                    append: () => {},
+                    prepend: () => {},
+                    get: () => undefined,
+                    forEach: () => {},
+                    delete: () => {},
+                    clear: () => {},
+                    [Symbol.iterator]: function* () { yield* []; }
+                }),
+                [Symbol.iterator]: function* () { yield* []; }
             },
             extensionUri: vscode.Uri.file(__dirname),
             extensionPath: __dirname,
@@ -43,12 +75,29 @@ suite('Code Actions Webview Integration Tests', () => {
             storageUri: vscode.Uri.file(__dirname),
             globalStorageUri: vscode.Uri.file(__dirname),
             logUri: vscode.Uri.file(__dirname),
+            storagePath: __dirname + '/storage',
+            globalStoragePath: __dirname + '/global-storage',
+            logPath: __dirname + '/log',
+            extension: {
+                id: 'test-extension',
+                extensionUri: vscode.Uri.file(__dirname),
+                extensionPath: __dirname,
+                isActive: true,
+                packageJSON: {},
+                extensionKind: vscode.ExtensionKind.Workspace,
+                exports: undefined,
+                activate: () => Promise.resolve()
+            },
+            languageModelAccessInformation: {
+                onDidChange: new vscode.EventEmitter().event,
+                canSendRequest: () => undefined
+            },
             extensionMode: vscode.ExtensionMode.Test
         } as vscode.ExtensionContext;
 
         // Initialize StateManager and AgentManager
         stateManager = StateManager.getInstance(mockContext);
-        agentManager = new AgentManager(stateManager);
+        agentManager = new AgentManager();
     });
 
     teardown(() => {

@@ -34,12 +34,44 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
             subscriptions: [],
             workspaceState: {
                 get: () => undefined,
-                update: () => Promise.resolve()
+                update: () => Promise.resolve(),
+                keys: () => []
             },
             globalState: {
                 get: () => undefined,
                 update: () => Promise.resolve(),
-                setKeysForSync: () => {}
+                setKeysForSync: () => {},
+                keys: () => []
+            },
+            secrets: {
+                get: () => Promise.resolve(undefined),
+                store: () => Promise.resolve(),
+                delete: () => Promise.resolve(),
+                onDidChange: new vscode.EventEmitter().event
+            },
+            environmentVariableCollection: {
+                persistent: true,
+                description: 'Test',
+                replace: () => {},
+                append: () => {},
+                prepend: () => {},
+                get: () => undefined,
+                forEach: () => {},
+                delete: () => {},
+                clear: () => {},
+                getScoped: () => ({
+                    persistent: true,
+                    description: 'Scoped Test',
+                    replace: () => {},
+                    append: () => {},
+                    prepend: () => {},
+                    get: () => undefined,
+                    forEach: () => {},
+                    delete: () => {},
+                    clear: () => {},
+                    [Symbol.iterator]: function* () { yield* []; }
+                }),
+                [Symbol.iterator]: function* () { yield* []; }
             },
             extensionUri: vscode.Uri.file(__dirname),
             extensionPath: __dirname,
@@ -47,26 +79,39 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
             storageUri: vscode.Uri.file(__dirname),
             globalStorageUri: vscode.Uri.file(__dirname),
             logUri: vscode.Uri.file(__dirname),
+            storagePath: __dirname + '/storage',
+            globalStoragePath: __dirname + '/global-storage',
+            logPath: __dirname + '/log',
+            extension: {
+                id: 'test-extension',
+                extensionUri: vscode.Uri.file(__dirname),
+                extensionPath: __dirname,
+                isActive: true,
+                packageJSON: {},
+                extensionKind: vscode.ExtensionKind.Workspace,
+                exports: undefined,
+                activate: () => Promise.resolve()
+            },
+            languageModelAccessInformation: {
+                onDidChange: new vscode.EventEmitter().event,
+                canSendRequest: () => undefined
+            },
             extensionMode: vscode.ExtensionMode.Test
         } as vscode.ExtensionContext;
 
         // Initialize services with real VSCode environment
+        // Reset singleton first to avoid "already initialized" error
+        (StorageService as any)._instance = null;
         StorageService.initialize(mockContext);
         storageService = StorageService.getInstance();
         stateManager = StateManager.getInstance(mockContext);
-        agentManager = new AgentManager(stateManager);
+        agentManager = new AgentManager();
         autoModeManager = new AutoModeManager(stateManager);
     });
 
     teardown(() => {
         // Clean up services
-        if (autoModeManager) {
-            try {
-                autoModeManager.dispose();
-            } catch (error) {
-                // Ignore disposal errors in tests
-            }
-        }
+        // Note: AutoModeManager doesn't have a dispose method
         
         // Reset singletons
         (StorageService as any)._instance = null;
@@ -85,7 +130,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test manifesto protection logic
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Action executed without throwing');
             } catch (error) {
                 // Expected behavior - should handle existing manifesto detection
@@ -103,7 +148,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test manifesto creation when no existing file
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Action executed successfully');
             } catch (error) {
                 // This is acceptable - the test environment may not have write permissions
@@ -123,7 +168,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test backup mechanism
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Backup mechanism handled correctly');
             } catch (error) {
                 // Expected behavior - backup mechanism should be triggered
@@ -141,7 +186,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test overwrite protection
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Overwrite protection handled correctly');
             } catch (error) {
                 // Expected behavior - should refuse overwrite without permission
@@ -164,7 +209,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test auto mode safety
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Auto mode safety handled correctly');
             } catch (error) {
                 // Expected behavior - should never auto-execute overwrite
@@ -185,7 +230,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test auto execution for new manifesto
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Auto execution for new manifesto handled correctly');
             } catch (error) {
                 // This is acceptable - the test environment may not have write permissions
@@ -205,7 +250,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test error handling
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'File system errors handled gracefully');
             } catch (error) {
                 // Expected behavior - should handle errors gracefully
@@ -225,7 +270,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test backup failure handling
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Backup failures handled gracefully');
             } catch (error) {
                 // Expected behavior - should handle backup failures gracefully
@@ -246,7 +291,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test content validation
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Content validation handled correctly');
             } catch (error) {
                 // Expected behavior - should validate content
@@ -264,7 +309,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
 
             // Test content preview
             try {
-                await autoModeManager.executeAction(action);
+                await autoModeManager.executeAction(action, agentManager);
                 assert.ok(true, 'Content preview handled correctly');
             } catch (error) {
                 // Expected behavior - should show preview
@@ -283,7 +328,7 @@ suite('CRITICAL: Manifesto Protection Integration Tests', () => {
         test('should handle project artifacts path correctly', async () => {
             // Test project artifacts path handling
             try {
-                const artifactsPath = await storageService.getProjectArtifactsPath();
+                const artifactsPath = await storageService.getProjectArtifactsPath('test-manifesto.md');
                 assert.ok(typeof artifactsPath === 'string');
             } catch (error) {
                 // This is acceptable in test environment without workspace

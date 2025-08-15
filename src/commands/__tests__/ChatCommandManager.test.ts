@@ -449,24 +449,364 @@ Done!`;
             });
         });
 
-        describe('TDD Mode Routing', () => {
-            test('should route code generation to TddCodeGenerationCommand when TDD mode is enabled', async () => {
+        describe('TDD Mode as Master Switch', () => {
+            test('should route code requests to TDD when TDD + Agent mode are enabled', async () => {
                 try {
-                    // Enable TDD mode
+                    const codeRequests = [
+                        'create a new function',
+                        'fix the memory leak',
+                        'refactor this code',
+                        'add validation',
+                        'optimize performance',
+                        'the buttons are misaligned'
+                    ];
+
+                    // Test with Agent + TDD combinations (only Agent mode should write code)
+                    const modeConfigurations = [
+                        { tdd: true, agent: true, auto: false },   // Agent + TDD
+                        { tdd: true, agent: true, auto: true }     // Agent + TDD + Auto
+                    ];
+
+                    for (const config of modeConfigurations) {
+                        mockStateManagerWithHistory.isTddMode = config.tdd;
+                        mockStateManagerWithHistory.isAgentMode = config.agent;
+                        mockStateManagerWithHistory.isAutoMode = config.auto;
+
+                        for (const request of codeRequests) {
+                            const response = await commandManager.handleMessage(
+                                request,
+                                mockStateManagerWithHistory,
+                                mockAgentManager
+                            );
+
+                            // Should route to TDD when TDD + Agent mode are enabled
+                            expect(response).toContain('TDD');
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('TDD + Agent mode test failed:', error);
+                    throw error;
+                }
+            });
+
+            test('should NOT route to TDD when TDD mode is disabled (regardless of other modes)', async () => {
+                try {
+                    const codeRequests = [
+                        'create a new function',
+                        'fix the memory leak',
+                        'refactor this code',
+                        'add validation',
+                        'the buttons are misaligned'
+                    ];
+
+                    // Test with different mode combinations - TDD disabled is the key
+                    const modeConfigurations = [
+                        { tdd: false, agent: true, auto: false },   // Agent only
+                        { tdd: false, agent: false, auto: true },   // Auto only
+                        { tdd: false, agent: false, auto: false },  // Chat only
+                        { tdd: false, agent: true, auto: true }     // Agent + Auto (no TDD)
+                    ];
+
+                    for (const config of modeConfigurations) {
+                        mockStateManagerWithHistory.isTddMode = config.tdd;
+                        mockStateManagerWithHistory.isAgentMode = config.agent;
+                        mockStateManagerWithHistory.isAutoMode = config.auto;
+
+                        for (const request of codeRequests) {
+                            const response = await commandManager.handleMessage(
+                                request,
+                                mockStateManagerWithHistory,
+                                mockAgentManager
+                            );
+
+                            // Should NEVER route to TDD when TDD mode is disabled
+                            expect(response).not.toContain('TDD');
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('TDD disabled routing test failed:', error);
+                    throw error;
+                }
+            });
+
+            test('should route UI bug reports to TddCodeGenerationCommand when agent+auto+TDD modes are enabled', async () => {
+                try {
+                    // Enable all modes that should trigger automatic fixes
                     mockStateManagerWithHistory.isTddMode = true;
+                    mockStateManagerWithHistory.isAgentMode = true;
+                    mockStateManagerWithHistory.isAutoMode = true;
+
+                    const uiBugReport = 'the admin settings section should be removed from the manifesto webview, but it\'s still there. the tabs don\'t work and the AI dropdown is empty';
 
                     const response = await commandManager.handleMessage(
-                        'create a new function',
+                        uiBugReport,
                         mockStateManagerWithHistory,
                         mockAgentManager
                     );
 
-                    // Assert TDD workflow was initiated (the actual TddCodeGenerationCommand was called)
+                    // Should trigger TDD workflow for automatic bug fixing
                     expect(response).toContain('TDD');
 
                 } catch (error) {
-                    // MANDATORY: Comprehensive error handling (manifesto requirement)
-                    console.error('TDD mode routing test failed:', error);
+                    console.error('UI bug report TDD routing test failed:', error);
+                    throw error;
+                }
+            });
+
+            test('should route UI issues to TDD when agent mode is enabled (even without auto mode)', async () => {
+                try {
+                    // Enable TDD and agent mode, but NOT auto mode
+                    mockStateManagerWithHistory.isTddMode = true;
+                    mockStateManagerWithHistory.isAgentMode = true;
+                    mockStateManagerWithHistory.isAutoMode = false;
+
+                    const uiIssue = 'the buttons should be horizontally aligned, not vertically stacked';
+
+                    const response = await commandManager.handleMessage(
+                        uiIssue,
+                        mockStateManagerWithHistory,
+                        mockAgentManager
+                    );
+
+                    // Should trigger TDD workflow because agent mode is enabled
+                    expect(response).toContain('TDD');
+
+                } catch (error) {
+                    console.error('Agent mode UI issue routing test failed:', error);
+                    throw error;
+                }
+            });
+
+            test('should NOT route UI issues to TDD when only chat mode is enabled (without auto mode)', async () => {
+                try {
+                    // Enable TDD but NOT agent mode or auto mode
+                    mockStateManagerWithHistory.isTddMode = true;
+                    mockStateManagerWithHistory.isAgentMode = false;
+                    mockStateManagerWithHistory.isAutoMode = false;
+
+                    const uiIssue = 'the dropdown is empty and should be populated';
+
+                    const response = await commandManager.handleMessage(
+                        uiIssue,
+                        mockStateManagerWithHistory,
+                        mockAgentManager
+                    );
+
+                    // Should NOT trigger TDD workflow - should fall back to regular command
+                    expect(response).not.toContain('TDD');
+
+                } catch (error) {
+                    console.error('Chat mode UI issue routing test failed:', error);
+                    throw error;
+                }
+            });
+
+            test('should NEVER route to TDD in chat mode (even with TDD enabled)', async () => {
+                try {
+                    // Chat mode should NEVER write code
+                    mockStateManagerWithHistory.isTddMode = true;
+                    mockStateManagerWithHistory.isAgentMode = false; // Chat mode
+                    mockStateManagerWithHistory.isAutoMode = true; // Auto mode is separate
+
+                    const codeRequests = [
+                        'create a new function',
+                        'fix the memory leak',
+                        'refactor this code',
+                        'add validation',
+                        'the tabs don\'t work properly',
+                        'optimize performance',
+                        'write a React component'
+                    ];
+
+                    for (const request of codeRequests) {
+                        const response = await commandManager.handleMessage(
+                            request,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        // Chat mode should NEVER route to TDD - always falls back to regular commands
+                        expect(response).not.toContain('TDD');
+                    }
+
+                } catch (error) {
+                    console.error('Chat mode never writes code test failed:', error);
+                    throw error;
+                }
+            });
+
+            test('should ALMOST ALWAYS route to TDD in agent mode (unless completely unclear)', async () => {
+                try {
+                    // Agent mode should almost always write code
+                    mockStateManagerWithHistory.isTddMode = true;
+                    mockStateManagerWithHistory.isAgentMode = true; // Agent mode
+                    mockStateManagerWithHistory.isAutoMode = false; // Auto mode is separate
+
+                    // Clear requests should ALWAYS route to TDD in agent mode
+                    const clearRequests = [
+                        'create a new function',
+                        'fix the memory leak in UserService',
+                        'refactor this messy code',
+                        'add validation to the form',
+                        'the tabs don\'t work properly',
+                        'optimize the database queries',
+                        'write a React component for login',
+                        'implement error handling',
+                        'add logging to this endpoint',
+                        'there\'s a race condition here'
+                    ];
+
+                    for (const request of clearRequests) {
+                        const response = await commandManager.handleMessage(
+                            request,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        // Agent mode should route to TDD for all clear requests
+                        expect(response).toContain('TDD');
+                    }
+
+                    // Only completely unclear requests should NOT route to TDD
+                    const unclearRequests = [
+                        'help',
+                        'what?',
+                        'huh',
+                        'I don\'t know',
+                        '???'
+                    ];
+
+                    for (const request of unclearRequests) {
+                        const response = await commandManager.handleMessage(
+                            request,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        // Only completely unclear requests should not route to TDD
+                        expect(response).not.toContain('TDD');
+                    }
+
+                } catch (error) {
+                    console.error('Agent mode almost always writes code test failed:', error);
+                    throw error;
+                }
+            });
+        });
+
+        describe('Comprehensive Real-World Scenario Detection', () => {
+            beforeEach(() => {
+                // Reset state for each test
+                mockStateManagerWithHistory.isTddMode = true;
+                mockStateManagerWithHistory.isAgentMode = true;
+                mockStateManagerWithHistory.isAutoMode = false;
+            });
+
+            describe('Refactoring & Modification Requests', () => {
+                test('should detect refactoring requests and route to TDD', async () => {
+                    const refactoringRequests = [
+                        'refactor this function to be more efficient',
+                        'optimize the database queries',
+                        'clean up this messy code',
+                        'simplify this complex logic',
+                        'extract this into a separate method',
+                        'rename these variables to be clearer',
+                        'restructure this class hierarchy',
+                        'consolidate these duplicate functions'
+                    ];
+
+                    for (const request of refactoringRequests) {
+                        const response = await commandManager.handleMessage(
+                            request,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        expect(response).toContain('TDD');
+                    }
+                });
+            });
+
+            describe('Bug Fixes & Debugging Requests', () => {
+                test('should detect bug fix requests and route to TDD', async () => {
+                    const bugFixRequests = [
+                        'fix the memory leak in UserService',
+                        'there\'s a race condition in the auth flow',
+                        'the validation is not working properly',
+                        'users are getting 500 errors',
+                        'the cache is not invalidating correctly',
+                        'this throws an undefined error',
+                        'the API returns null instead of data',
+                        'fix the broken authentication'
+                    ];
+
+                    for (const request of bugFixRequests) {
+                        const response = await commandManager.handleMessage(
+                            request,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        expect(response).toContain('TDD');
+                    }
+                });
+            });
+
+            describe('Feature Addition Requests', () => {
+                test('should detect feature addition requests and route to TDD', async () => {
+                    const featureRequests = [
+                        'add logging to this endpoint',
+                        'we need authentication on this route',
+                        'add validation to the form',
+                        'include error handling here',
+                        'add a loading spinner',
+                        'implement pagination for the table',
+                        'add search functionality',
+                        'include file upload capability'
+                    ];
+
+                    for (const request of featureRequests) {
+                        const response = await commandManager.handleMessage(
+                            request,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        expect(response).toContain('TDD');
+                    }
+                });
+            });
+
+            test('should route UI issue reports to TDD when TDD + Agent mode are enabled', async () => {
+                try {
+                    // Enable TDD mode AND agent mode
+                    mockStateManagerWithHistory.isTddMode = true;
+                    mockStateManagerWithHistory.isAgentMode = true;
+                    mockStateManagerWithHistory.isAutoMode = false; // Not needed when agent mode is on
+
+                    const uiIssueInputs = [
+                        'the buttons should be horizontally aligned, not vertically stacked',
+                        'the dropdown is empty and should be populated',
+                        'the tabs don\'t work properly',
+                        'the admin settings section should be removed',
+                        'the UI elements are not positioned correctly'
+                    ];
+
+                    for (const input of uiIssueInputs) {
+                        const response = await commandManager.handleMessage(
+                            input,
+                            mockStateManagerWithHistory,
+                            mockAgentManager
+                        );
+
+                        // Should trigger TDD workflow for UI fixes when agent mode is enabled
+                        expect(response).toContain('TDD');
+                    }
+
+                } catch (error) {
+                    console.error('UI issue TDD routing test failed:', error);
                     throw error;
                 }
             });
