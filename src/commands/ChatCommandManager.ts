@@ -56,11 +56,12 @@ export class ChatCommandManager {
      */
     async handleMessage(input: string, stateManager: StateManager, agentManager: AgentManager): Promise<string> {
         try {
-            // PRIORITY: Check TDD mode first - if enabled and this is a code generation request, route to TDD workflow
-            if (stateManager.isTddMode && this.isCodeGenerationRequest(input)) {
+            // PRIORITY: Check TDD mode first - if enabled and this should trigger automatic fixes, route to TDD workflow
+            if (stateManager.isTddMode && this.shouldTriggerAutomaticFixes(input, stateManager)) {
                 const tddCommand = this.commands.find(cmd => cmd.constructor.name === 'TddCodeGenerationCommand');
                 if (tddCommand) {
-                    console.log(`🧪 TDD Mode: Routing to TddCodeGenerationCommand for input: "${input.substring(0, 50)}..."`);
+                    const requestType = this.getRequestType(input, stateManager);
+                    console.log(`🧪 TDD Mode: Routing ${requestType} to TddCodeGenerationCommand for input: "${input.substring(0, 50)}..."`);
                     return await tddCommand.execute(input, stateManager, agentManager);
                 }
             }
@@ -91,6 +92,188 @@ export class ChatCommandManager {
         ];
 
         return codeGenerationPatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * Check if the input is a UI issue report or bug report that should trigger automatic fixes
+     * @param input - The user's input message
+     * @returns True if this is a UI issue/bug report that should trigger TDD workflow
+     */
+    private isUiIssueReport(input: string): boolean {
+        const uiIssuePatterns = [
+            // UI positioning and layout issues
+            /\b(buttons?|elements?|components?)\s+(should be|are not|aren't)\s+(horizontally|vertically)\s+(aligned|stacked|positioned)/i,
+            /\b(dropdown|select|menu)\s+(is|are)\s+(empty|not populated|missing options)/i,
+            /\b(tabs?|navigation)\s+(don't work|doesn't work|not working|broken)/i,
+
+            // UI sections and features that should be removed/added
+            /\b(admin settings?|settings? section)\s+(should be removed|needs to be removed|is still there)/i,
+            /\b(section|panel|area)\s+(should be removed|needs to be removed|is still there)/i,
+
+            // UI positioning and movement
+            /\b(should be moved|needs to be moved|supposed to be)\s+(next to|beside|near)/i,
+            /\b(positioned|placed)\s+(next to|beside|near|correctly)/i,
+
+            // General UI issues
+            /\b(UI|interface|webview|page)\s+.*(doesn't work|don't work|not working|broken|issues?)/i,
+            /\b(nothing works|none of the UI|UI elements don't)/i,
+
+            // Bug reports with "should" or "supposed to"
+            /\b(should|supposed to)\s+(be|have been)\s+(removed|fixed|working|positioned)/i,
+            /\b(was supposed to|were supposed to)\s+(be|have been)\s+(removed|fixed|working|positioned)/i
+        ];
+
+        return uiIssuePatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * Determine if the input should trigger automatic fixes based on content and agent mode
+     * @param input - The user's input message
+     * @param stateManager - State manager to check agent mode and other settings
+     * @returns True if automatic fixes should be triggered
+     */
+    private shouldTriggerAutomaticFixes(input: string, stateManager: StateManager): boolean {
+        // CRITICAL: Chat mode should NEVER write code
+        if (!stateManager.isAgentMode) {
+            return false;
+        }
+
+        // Agent mode: Check if this is any kind of code-related request
+        return this.isAnyCodeRequest(input);
+    }
+
+    /**
+     * Check if input is any kind of code-related request (broader than just generation)
+     * @param input - The user's input message
+     * @returns True if this is any code-related request
+     */
+    private isAnyCodeRequest(input: string): boolean {
+        // Explicit code generation requests
+        if (this.isCodeGenerationRequest(input)) {
+            return true;
+        }
+
+        // UI issues and bug reports
+        if (this.isUiIssueReport(input)) {
+            return true;
+        }
+
+        // Refactoring and modification requests
+        if (this.isRefactoringRequest(input)) {
+            return true;
+        }
+
+        // Bug fixes and debugging
+        if (this.isBugFixRequest(input)) {
+            return true;
+        }
+
+        // Feature additions
+        if (this.isFeatureAdditionRequest(input)) {
+            return true;
+        }
+
+        // Performance and optimization
+        if (this.isOptimizationRequest(input)) {
+            return true;
+        }
+
+        // Only completely unclear requests should not trigger code generation
+        return !this.isCompletelyUnclear(input);
+    }
+
+    /**
+     * Check if input is a refactoring request
+     */
+    private isRefactoringRequest(input: string): boolean {
+        const refactoringPatterns = [
+            /\b(refactor|restructure|reorganize|clean up|simplify|optimize|consolidate)\b/i,
+            /\b(extract|rename|move|split|merge)\s+(function|method|class|variable|component)/i,
+            /\bmake\s+.*(more\s+)?(efficient|readable|maintainable|clean)/i
+        ];
+        return refactoringPatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * Check if input is a bug fix request
+     */
+    private isBugFixRequest(input: string): boolean {
+        const bugFixPatterns = [
+            /\b(fix|resolve|debug|solve)\b/i,
+            /\b(bug|error|issue|problem|crash|fail|broken)\b/i,
+            /\b(memory leak|race condition|null pointer|undefined|exception)\b/i,
+            /\b(not working|doesn't work|isn't working)\b/i
+        ];
+        return bugFixPatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * Check if input is a feature addition request
+     */
+    private isFeatureAdditionRequest(input: string): boolean {
+        const featurePatterns = [
+            /\b(add|include|implement|integrate)\s+(logging|authentication|validation|error handling|monitoring)/i,
+            /\b(we need|add|include)\s+(a|an|the)?\s*(new)?\s*(feature|functionality|capability)/i,
+            /\b(add|include)\s+.*\s+(to|in|for)\s+(this|the)/i
+        ];
+        return featurePatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * Check if input is an optimization request
+     */
+    private isOptimizationRequest(input: string): boolean {
+        const optimizationPatterns = [
+            /\b(optimize|improve|speed up|make faster|reduce|minimize)\b/i,
+            /\b(performance|speed|memory|cpu|bandwidth|load time)\b/i,
+            /\b(too slow|slow|inefficient|heavy|bloated)\b/i
+        ];
+        return optimizationPatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * Check if input is completely unclear
+     */
+    private isCompletelyUnclear(input: string): boolean {
+        const unclearPatterns = [
+            /^(help|what\?|huh|i don't know|\?\?\?|unclear)$/i,
+            /^.{1,3}$/  // Very short inputs like "???" or "what"
+        ];
+        return unclearPatterns.some(pattern => pattern.test(input.trim()));
+    }
+
+    /**
+     * Get a human-readable description of the request type
+     * @param input - The user's input message
+     * @param stateManager - State manager to check current mode
+     * @returns Description of the request type
+     */
+    private getRequestType(input: string, stateManager: StateManager): string {
+        if (this.isCodeGenerationRequest(input)) {
+            return 'Code Generation';
+        }
+
+        if (this.isUiIssueReport(input)) {
+            return 'UI Issue Report (Agent Mode)';
+        }
+
+        if (this.isRefactoringRequest(input)) {
+            return 'Refactoring Request (Agent Mode)';
+        }
+
+        if (this.isBugFixRequest(input)) {
+            return 'Bug Fix Request (Agent Mode)';
+        }
+
+        if (this.isFeatureAdditionRequest(input)) {
+            return 'Feature Addition (Agent Mode)';
+        }
+
+        if (this.isOptimizationRequest(input)) {
+            return 'Optimization Request (Agent Mode)';
+        }
+
+        return 'Code Request (Agent Mode)';
     }
 
     /**
