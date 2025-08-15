@@ -1,6 +1,7 @@
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
 import { AgentManager } from '../agents/AgentManager';
+import { LanguageService } from '../core/LanguageService';
 
 /**
  * Command for handling lint and fix requests
@@ -144,8 +145,12 @@ export class LintCommand implements IChatCommand {
         const issues: any[] = [];
         const lines = content.split('\n');
 
-        // Define source code extensions to analyze
-        const sourceCodeExtensions = ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.cpp', '.h', '.c', '.php', '.rb', '.go', '.rs', '.swift', '.kt'];
+        // Use LanguageService to get all supported file extensions
+        const languageService = LanguageService.getInstance();
+        const allLanguages = languageService.getAllLanguages();
+        const sourceCodeExtensions = allLanguages.flatMap(lang =>
+            languageService.getFileExtensions(lang).map(ext => `.${ext}`)
+        );
 
         // Guard clause: Only analyze source code files
         const hasSourceExtension = sourceCodeExtensions.some(ext => filename.toLowerCase().endsWith(ext));

@@ -9,6 +9,7 @@ import { StateManager } from './StateManager';
 import { PiggieFileManager } from '../file-operations/PiggieFileManager';
 import { TddCodeGenerationCommand } from '../commands/TddCodeGenerationCommand';
 import { AgentManager } from '../agents/AgentManager';
+import { StorageService } from './StorageService';
 
 export interface AutoModeResult {
     executed: boolean;
@@ -160,13 +161,17 @@ export class AutoModeManager {
     private async handleCreateManifesto(action: ChatAction): Promise<string> {
         const { content, type, forceOverwrite, createBackup } = action.data as ActionData;
 
+        // Get the correct manifesto path from StorageService
+        const storageService = StorageService.getInstance();
+        const manifestoPath = await storageService.getProjectArtifactsPath('manifesto.md');
+
         // CRITICAL SAFETY CHECK: Never overwrite existing manifesto without explicit permission
-        const manifestoExists = await this.fileManager.fileExists('manifesto.md');
+        const manifestoExists = await this.fileManager.fileExists(manifestoPath);
 
         if (manifestoExists && !forceOverwrite) {
             // Read existing manifesto to show user what would be overwritten
             try {
-                const existingContent = await this.fileManager.readFile('manifesto.md');
+                const existingContent = await this.fileManager.readFile(manifestoPath);
 
                 return `⚠️ **EXISTING MANIFESTO DETECTED** ⚠️\n\n` +
                        `📋 **Current Manifesto Content:**\n` +
@@ -189,7 +194,7 @@ export class AutoModeManager {
         // Handle backup creation if requested
         if (manifestoExists && forceOverwrite && createBackup) {
             try {
-                const existingContent = await this.fileManager.readFile('manifesto.md');
+                const existingContent = await this.fileManager.readFile(manifestoPath);
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 const backupFileName = `manifesto.backup.${timestamp}.md`;
 
@@ -212,7 +217,7 @@ export class AutoModeManager {
 
         // Create the new manifesto
         const operation = {
-            path: 'manifesto.md',
+            path: manifestoPath,
             content: content,
             type: manifestoExists ? 'update' as const : 'create' as const,
             backup: false // We handled backup manually above

@@ -1,0 +1,15 @@
+{
+    "manifestoEnforcer.manifestoMode": "developer",
+    "manifestoEnforcer.defaultMode": "chat",
+    "manifestoEnforcer.autoMode": false,
+    "manifestoEnforcer.isTddMode": false,
+    "manifestoEnforcer.isUiTddMode": false,
+    "manifestoEnforcer.techStack": "",
+    "manifestoEnforcer.testFramework": "",
+    "manifestoEnforcer.uiTestFramework": "",
+    "manifestoEnforcer.fontSize": "medium",
+    "manifestoEnforcer.showEmojis": true,
+    "manifestoEnforcer.currentAgent": "cline",
+    "manifestoEnforcer.devManifestoPath": "manifesto-dev.md",
+    "manifestoEnforcer.qaManifestoPath": "custom-qa-manifesto.md"
+}

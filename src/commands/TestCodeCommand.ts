@@ -4,6 +4,7 @@ import { AgentManager } from '../agents/AgentManager';
 import { TerminalManager } from '../core/TerminalManager';
 import { ChatResponseBuilder } from '../core/ChatResponseBuilder';
 import { ActionSafety } from '../core/types';
+import { LanguageService } from '../core/LanguageService';
 
 /**
  * TestCodeCommand - Executes code from previous conversation context
@@ -196,39 +197,46 @@ export class TestCodeCommand implements IChatCommand {
     }
 
     /**
-     * Check if a language is executable
+     * Check if a language is executable using LanguageService
      */
     private isExecutableLanguage(language: string): boolean {
-        const executableLanguages = [
-            'javascript', 'js', 'typescript', 'ts',
-            'python', 'py', 'node', 'bash', 'sh',
-            'java', 'c', 'cpp', 'go', 'rust', 'php'
-        ];
-        return executableLanguages.includes(language.toLowerCase());
+        const languageService = LanguageService.getInstance();
+        const allLanguages = languageService.getAllLanguages();
+
+        // Check if the language is supported and executable
+        for (const langName of allLanguages) {
+            const config = languageService.getLanguageConfig(langName);
+            if (config && config.isExecutable) {
+                // Check if the input language matches any detection keywords or the language name
+                const keywords = languageService.getDetectionKeywords(langName);
+                if (keywords.some(keyword => keyword.toLowerCase() === language.toLowerCase()) ||
+                    langName.toLowerCase() === language.toLowerCase()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Get file extension for a language
+     * Get file extension for a language using LanguageService
      */
     private getFileExtension(language: string): string {
-        const extensions: Record<string, string> = {
-            'javascript': 'js',
-            'js': 'js',
-            'typescript': 'ts',
-            'ts': 'ts',
-            'python': 'py',
-            'py': 'py',
-            'java': 'java',
-            'c': 'c',
-            'cpp': 'cpp',
-            'go': 'go',
-            'rust': 'rs',
-            'php': 'php',
-            'bash': 'sh',
-            'sh': 'sh'
-        };
+        const languageService = LanguageService.getInstance();
+        const allLanguages = languageService.getAllLanguages();
 
-        return extensions[language] || 'txt';
+        // Find the language and return its primary file extension
+        for (const langName of allLanguages) {
+            const keywords = languageService.getDetectionKeywords(langName);
+            if (keywords.some(keyword => keyword.toLowerCase() === language.toLowerCase()) ||
+                langName.toLowerCase() === language.toLowerCase()) {
+                const extensions = languageService.getFileExtensions(langName);
+                return extensions[0] || 'txt'; // Return first extension as primary
+            }
+        }
+
+        return 'txt';
     }
 
 

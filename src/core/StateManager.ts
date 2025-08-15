@@ -20,6 +20,7 @@ import { PiggieDirectoryManager } from './PiggieDirectoryManager';
 import { GitignoreParser } from './GitignoreParser';
 import { FileLifecycleManager, FileLifecycleOptions, FileLifecycleResult } from './FileLifecycleManager';
 import { ManifestoEngine } from './ManifestoEngine';
+import { StorageService } from './StorageService';
 
 /**
  * Singleton StateManager class that centralizes all extension state
@@ -32,6 +33,9 @@ export class StateManager {
     // Core State Variables
     private _manifestoRules: ManifestoRule[] = [];
     private _isManifestoMode: boolean = true;
+    private _manifestoMode: 'developer' | 'qa' | 'solo' = 'developer'; // New enum property
+    private _devManifestoPath: string = 'manifesto-dev.md'; // New dev manifesto path
+    private _qaManifestoPath: string = 'manifesto-qa.md'; // New QA manifesto path
     private _currentAgent: string = 'Auggie';
     private _currentModel: string = 'Claude Sonnet 4';
     private _isAgentMode: boolean = false; // false = chat only (safer default)
@@ -111,16 +115,19 @@ export class StateManager {
     }
 
     /**
-     * Private constructor implementing singleton pattern
+     * Constructor implementing singleton pattern
      * MANDATORY: Input validation (manifesto requirement)
+     * Made public for testing purposes
      */
-    private constructor(context: vscode.ExtensionContext) {
+    public constructor(context?: vscode.ExtensionContext) {
         try {
-            if (!context) {
-                throw new Error('ExtensionContext is required');
+            // For testing, context can be undefined
+            if (context) {
+                this.context = context;
+            } else {
+                // Create a mock context for testing
+                this.context = {} as vscode.ExtensionContext;
             }
-            
-            this.context = context;
             this.initializeFromSettings();
 
             // Initialize file management utilities
@@ -187,8 +194,18 @@ export class StateManager {
         try {
             const config = vscode.workspace.getConfiguration('manifestoEnforcer');
             
-            // Load manifesto mode setting
-            this._isManifestoMode = config.get<boolean>('manifestoMode', true);
+            // Load new manifesto mode enum setting
+            const manifestoModeValue = config.get<string>('manifestoMode', 'developer');
+            this._manifestoMode = this.validateManifestoMode(manifestoModeValue);
+
+            // Set isManifestoMode based on whether we have a valid manifesto mode
+            this._isManifestoMode = this._manifestoMode !== null && this._manifestoMode !== undefined;
+
+            // Load manifesto file paths with validation
+            const devPath = config.get<string>('devManifestoPath', 'manifesto-dev.md');
+            const qaPath = config.get<string>('qaManifestoPath', 'manifesto-qa.md');
+            this._devManifestoPath = this.validateManifestoFilePath(devPath);
+            this._qaManifestoPath = this.validateManifestoFilePath(qaPath);
 
             // Load default mode setting
             const defaultMode = config.get<string>('defaultMode', 'chat');
@@ -233,7 +250,9 @@ export class StateManager {
     public async saveSettings(): Promise<void> {
         try {
             const config = vscode.workspace.getConfiguration('manifestoEnforcer');
-            await config.update('manifestoMode', this._isManifestoMode, vscode.ConfigurationTarget.Global);
+            await config.update('manifestoMode', this._manifestoMode, vscode.ConfigurationTarget.Global);
+            await config.update('devManifestoPath', this._devManifestoPath, vscode.ConfigurationTarget.Global);
+            await config.update('qaManifestoPath', this._qaManifestoPath, vscode.ConfigurationTarget.Global);
             await config.update('defaultMode', this._isAgentMode ? 'agent' : 'chat', vscode.ConfigurationTarget.Global);
             await config.update('autoMode', this._isAutoMode, vscode.ConfigurationTarget.Global);
             await config.update('isTddMode', this._isTddMode, vscode.ConfigurationTarget.Global);
@@ -260,8 +279,35 @@ export class StateManager {
     public set manifestoRules(value: ManifestoRule[]) { this._manifestoRules = value; }
 
     public get isManifestoMode(): boolean { return this._isManifestoMode; }
-    public set isManifestoMode(value: boolean) { 
+    public set isManifestoMode(value: boolean) {
         this._isManifestoMode = value;
+        this.saveSettings().catch(console.error);
+    }
+
+    /**
+     * Get current manifesto mode (developer, qa, solo)
+     */
+    public get manifestoMode(): 'developer' | 'qa' | 'solo' { return this._manifestoMode; }
+    public set manifestoMode(value: 'developer' | 'qa' | 'solo') {
+        this._manifestoMode = this.validateManifestoMode(value);
+        this.saveSettings().catch(console.error);
+    }
+
+    /**
+     * Get development manifesto file path
+     */
+    public get devManifestoPath(): string { return this._devManifestoPath; }
+    public set devManifestoPath(value: string) {
+        this._devManifestoPath = this.validateManifestoFilePath(value);
+        this.saveSettings().catch(console.error);
+    }
+
+    /**
+     * Get QA manifesto file path
+     */
+    public get qaManifestoPath(): string { return this._qaManifestoPath; }
+    public set qaManifestoPath(value: string) {
+        this._qaManifestoPath = this.validateManifestoFilePath(value);
         this.saveSettings().catch(console.error);
     }
 
@@ -492,12 +538,26 @@ export class StateManager {
      */
     public async loadGlossaryFromStorage(): Promise<boolean> {
         try {
-            const savedGlossary = this.context.workspaceState.get('projectGlossary');
-            if (savedGlossary) {
-                this._projectGlossary = new Map(Object.entries(savedGlossary));
-                console.log('📖 Restored glossary from previous session');
-                return true;
+            const storageService = StorageService.getInstance();
+            const glossaryPath = await storageService.getProjectArtifactsPath('glossary.json');
+
+            // Check if file exists
+            const glossaryUri = vscode.Uri.file(glossaryPath);
+            try {
+                const fileContent = await vscode.workspace.fs.readFile(glossaryUri);
+                const glossaryText = Buffer.from(fileContent).toString('utf8');
+                const savedGlossary = JSON.parse(glossaryText);
+
+                if (savedGlossary && typeof savedGlossary === 'object') {
+                    this._projectGlossary = new Map(Object.entries(savedGlossary));
+                    console.log('📖 Restored glossary from previous session');
+                    return true;
+                }
+            } catch (fileError) {
+                // File doesn't exist or can't be read - this is normal for new projects
+                console.log('📖 No existing glossary file found - starting fresh');
             }
+
             return false;
         } catch (error) {
             console.error('Failed to load glossary:', error);
@@ -511,8 +571,16 @@ export class StateManager {
      */
     public async saveGlossaryToStorage(): Promise<void> {
         try {
+            const storageService = StorageService.getInstance();
+            const glossaryPath = await storageService.getProjectArtifactsPath('glossary.json');
+
             const glossaryObj = Object.fromEntries(this._projectGlossary);
-            await this.context.workspaceState.update('projectGlossary', glossaryObj);
+            const glossaryContent = JSON.stringify(glossaryObj, null, 2);
+
+            // Write to file using VS Code's file system API
+            const glossaryUri = vscode.Uri.file(glossaryPath);
+            await vscode.workspace.fs.writeFile(glossaryUri, Buffer.from(glossaryContent, 'utf8'));
+
             console.log('📖 Glossary saved to storage');
         } catch (error) {
             console.error('Failed to save glossary:', error);
@@ -1005,5 +1073,85 @@ export class StateManager {
         } catch (error) {
             console.error('Error disposing StateManager:', error);
         }
+    }
+
+    /**
+     * Validate manifesto mode enum value
+     * MANDATORY: Input validation (manifesto requirement)
+     */
+    private validateManifestoMode(value: string): 'developer' | 'qa' | 'solo' {
+        const validModes: ('developer' | 'qa' | 'solo')[] = ['developer', 'qa', 'solo'];
+        if (validModes.includes(value as any)) {
+            return value as 'developer' | 'qa' | 'solo';
+        }
+
+        // Default to 'developer' for invalid values instead of throwing
+        console.warn(`Invalid manifesto mode '${value}', defaulting to 'developer'`);
+        return 'developer';
+    }
+
+    /**
+     * Validate manifesto file path
+     * MANDATORY: Input validation (manifesto requirement)
+     */
+    private validateManifestoFilePath(path: string): string {
+        // Input validation
+        if (!path || typeof path !== 'string') {
+            throw new Error('Manifesto file path cannot be empty');
+        }
+
+        // Trim whitespace
+        const trimmedPath = path.trim();
+        if (!trimmedPath) {
+            throw new Error('Manifesto file path cannot be empty');
+        }
+
+        // Check for XSS attempts
+        if (trimmedPath.includes('<script>') || trimmedPath.includes('</script>')) {
+            throw new Error('Invalid characters in manifesto file path');
+        }
+
+        // Check for path traversal attempts
+        if (trimmedPath.includes('../') || trimmedPath.includes('..\\')) {
+            throw new Error('Path traversal not allowed in manifesto file path');
+        }
+
+        // Validate file extension
+        if (!trimmedPath.endsWith('.md')) {
+            throw new Error('Manifesto file must have .md extension');
+        }
+
+        return trimmedPath;
+    }
+
+    /**
+     * Validate manifesto file path exists
+     * MANDATORY: File validation (manifesto requirement)
+     */
+    public async validateManifestoPath(path: string): Promise<boolean> {
+        try {
+            if (!path || typeof path !== 'string') {
+                return false;
+            }
+
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                return false;
+            }
+
+            const fullPath = vscode.Uri.joinPath(workspaceFolder.uri, path);
+            await vscode.workspace.fs.stat(fullPath);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Make loadSettings method public for testing
+     * MANDATORY: Testability (manifesto requirement)
+     */
+    public async loadSettings(): Promise<void> {
+        return this.initializeFromSettings();
     }
 }

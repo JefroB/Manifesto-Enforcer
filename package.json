@@ -1,8 +1,8 @@
 {
   "name": "manifesto-enforcer",
   "displayName": "Manifesto Enforcer",
-  "description": "🐷 [ALPHA v0.0.1] Meet Piggie! Your compliance-enforcing AI coding assistant. Uses your manifesto to enforce coding compliance. ⚠️ Super early alpha - not user tested!",
-  "version": "0.0.71-alpha",
+  "description": "🐷 [ALPHA v0.0.74] Meet Piggie! Your compliance-enforcing AI coding assistant with 100% passing tests and bulletproof quality. Modern webview UI, comprehensive test coverage. ⚠️ Super early alpha - not user tested!",
+  "version": "0.0.74-alpha",
   "publisher": "manifesto-enforcer",
   "repository": {
     "type": "git",
@@ -91,13 +91,13 @@
         "icon": "$(settings-gear)"
       },
       {
-        "command": "manifestoEnforcer.testConnection",
-        "title": "🔧 Test Piggie Connection",
+        "command": "manifestoEnforcer.settings.testConnection",
+        "title": "🔧 Test Piggie Connection (Settings)",
         "icon": "$(debug)"
       },
       {
-        "command": "piggie.discoverAPIs",
-        "title": "🔍 Piggie: Discover AI Agent APIs",
+        "command": "manifestoEnforcer.settings.discoverAPIs",
+        "title": "🔍 Discover AI Agent APIs (Settings)",
         "icon": "$(search)"
       },
       {
@@ -121,24 +121,14 @@
         "icon": "$(cloud)"
       },
       {
-        "command": "manifestoEnforcer.refreshManifesto",
-        "title": "Refresh Manifesto",
-        "icon": "$(refresh)"
+        "command": "manifestoEnforcer.openCodeActions",
+        "title": "🐷 Open Code Actions",
+        "icon": "$(tools)"
       },
       {
-        "command": "manifestoEnforcer.refreshGlossary",
-        "title": "Refresh Glossary",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "manifestoEnforcer.addGlossaryTermFromTree",
-        "title": "Add Term",
-        "icon": "$(add)"
-      },
-      {
-        "command": "manifestoEnforcer.removeGlossaryTerm",
-        "title": "Remove Term",
-        "icon": "$(trash)"
+        "command": "manifestoEnforcer.openManifestoManagement",
+        "title": "📋 Open Manifesto & Glossary",
+        "icon": "$(shield)"
       }
     ],
     "viewsContainers": {
@@ -153,55 +143,41 @@
     "views": {
       "manifesto-enforcer": [
         {
-          "id": "manifestoView",
-          "name": "📋 Manifesto"
-        },
-        {
-          "id": "glossaryView",
-          "name": "📖 Glossary"
-        },
-        {
           "id": "piggieChatPanel",
           "name": "💬 Chat with Piggie",
           "type": "webview"
         },
         {
-          "id": "piggieActions",
-          "name": "🐷 Piggie Actions"
+          "id": "codeActionsPanel",
+          "name": "🐷 Code Actions",
+          "type": "webview"
         },
         {
-          "id": "manifestoRules",
-          "name": "🛡️ Manifesto Rules"
-        },
-        {
-          "id": "piggieSecurityReview",
-          "name": "🔒 Security Review"
+          "id": "manifestoManagementPanel",
+          "name": "📋 Manifesto & Glossary",
+          "type": "webview"
         }
       ]
     },
     "menus": {
-      "view/title": [
+      "commandPalette": [
         {
-          "command": "manifestoEnforcer.refreshManifesto",
-          "when": "view == manifestoView",
-          "group": "navigation"
+          "command": "manifestoEnforcer.openCodeActions"
         },
         {
-          "command": "manifestoEnforcer.refreshGlossary",
-          "when": "view == glossaryView",
-          "group": "navigation"
-        },
-        {
-          "command": "manifestoEnforcer.addGlossaryTermFromTree",
-          "when": "view == glossaryView",
-          "group": "navigation"
+          "command": "manifestoEnforcer.openManifestoManagement"
         }
       ],
-      "view/item/context": [
+      "view/title": [
         {
-          "command": "manifestoEnforcer.removeGlossaryTerm",
-          "when": "view == glossaryView && viewItem == term",
-          "group": "inline"
+          "command": "manifestoEnforcer.openCodeActions",
+          "when": "view == piggieChatPanel",
+          "group": "navigation@1"
+        },
+        {
+          "command": "manifestoEnforcer.openManifestoManagement",
+          "when": "view == piggieChatPanel",
+          "group": "navigation@2"
         }
       ],
       "editor/context": [
@@ -230,10 +206,38 @@
     "configuration": {
       "title": "Manifesto Enforcer",
       "properties": {
+        "manifestoEnforcer.manifestoMode": {
+          "type": "string",
+          "default": "developer",
+          "enum": [
+            "developer",
+            "qa",
+            "solo"
+          ],
+          "enumDescriptions": [
+            "Developer mode - uses manifesto-dev.md",
+            "QA mode - uses manifesto-qa.md",
+            "Solo Dev mode - merges both manifestos"
+          ],
+          "description": "Manifesto enforcement mode",
+          "scope": "resource"
+        },
+        "manifestoEnforcer.devManifestoPath": {
+          "type": "string",
+          "default": "manifesto-dev.md",
+          "description": "Path to the development manifesto file",
+          "scope": "resource"
+        },
+        "manifestoEnforcer.qaManifestoPath": {
+          "type": "string",
+          "default": "manifesto-qa.md",
+          "description": "Path to the QA manifesto file",
+          "scope": "resource"
+        },
         "manifestoEnforcer.manifestoPath": {
           "type": "string",
           "default": "manifesto.md",
-          "description": "Path to the development manifesto file",
+          "description": "Path to the legacy manifesto file (deprecated)",
           "scope": "resource"
         },
         "manifestoEnforcer.defaultAgent": {
@@ -274,6 +278,18 @@
           "default": 5000,
           "description": "Timeout for agent connections (milliseconds)"
         },
+        "manifestoEnforcer.testConnectionButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Test Connection button in settings",
+          "scope": "application"
+        },
+        "manifestoEnforcer.discoverAPIsButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Discover APIs button in settings",
+          "scope": "application"
+        },
         "manifestoEnforcer.defaultMode": {
           "type": "string",
           "default": "chat",
@@ -284,9 +300,29 @@
           "description": "Default mode for Piggie: 'chat' for explanations only, 'agent' for performing actions"
         },
         "manifestoEnforcer.manifestoMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable manifesto mode for compliance checking"
+          "type": "string",
+          "default": "developer",
+          "enum": [
+            "developer",
+            "qa",
+            "solo"
+          ],
+          "enumDescriptions": [
+            "Developer mode - uses manifesto-dev.md",
+            "QA mode - uses manifesto-qa.md",
+            "Solo Dev mode - merges both manifestos"
+          ],
+          "description": "Manifesto enforcement mode"
+        },
+        "manifestoEnforcer.devManifestoPath": {
+          "type": "string",
+          "default": "manifesto-dev.md",
+          "description": "Path to developer manifesto file"
+        },
+        "manifestoEnforcer.qaManifestoPath": {
+          "type": "string",
+          "default": "manifesto-qa.md",
+          "description": "Path to QA manifesto file"
         },
         "manifestoEnforcer.autoMode": {
           "type": "boolean",

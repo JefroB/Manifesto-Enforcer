@@ -1,9 +1,12 @@
+import * as vscode from 'vscode';
 import { IChatCommand } from './IChatCommand';
 import { StateManager } from '../core/StateManager';
 import { AgentManager } from '../agents/AgentManager';
 import { FileLifecycleManager } from '../core/FileLifecycleManager';
 import { ChatResponseBuilder } from '../core/ChatResponseBuilder';
 import { AutoModeManager } from '../core/AutoModeManager';
+import { LanguageService } from '../core/LanguageService';
+import { StorageService } from '../core/StorageService';
 
 /**
  * Command for handling manifesto-related requests
@@ -92,14 +95,20 @@ export class ManifestoCommand implements IChatCommand {
     }
 
     /**
-     * Read manifesto.md file from workspace
+     * Read manifesto.md file from StorageService location
      */
     private async readManifestoFile(): Promise<string | null> {
         try {
-            // This would need to be implemented with actual file system access
-            // For now, return null to use built-in manifesto
-            return null;
+            const storageService = StorageService.getInstance();
+            const manifestoPath = await storageService.getProjectArtifactsPath('manifesto.md');
+
+            // Try to read the manifesto file
+            const manifestoUri = vscode.Uri.file(manifestoPath);
+            const document = await vscode.workspace.openTextDocument(manifestoUri);
+            return document.getText();
+
         } catch (error) {
+            // File doesn't exist or can't be read - this is normal for new projects
             return null;
         }
     }
@@ -218,8 +227,12 @@ export class ManifestoCommand implements IChatCommand {
                 const content = fileData.content;
                 const filename = filePath.split('/').pop() || filePath;
 
-                // Define source code extensions to analyze
-                const sourceCodeExtensions = ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.cpp', '.h', '.c', '.php', '.rb', '.go', '.rs', '.swift', '.kt'];
+                // Use LanguageService to get all supported file extensions
+                const languageService = LanguageService.getInstance();
+                const allLanguages = languageService.getAllLanguages();
+                const sourceCodeExtensions = allLanguages.flatMap(lang =>
+                    languageService.getFileExtensions(lang).map(ext => `.${ext}`)
+                );
 
                 // Only analyze source code files
                 const hasSourceExtension = sourceCodeExtensions.some(ext => filename.toLowerCase().endsWith(ext));
@@ -538,26 +551,11 @@ export class ManifestoCommand implements IChatCommand {
     }
 
     /**
-     * Detect project type from user input
+     * Detect project type from user input using LanguageService
      */
     private detectProjectType(input: string): string | null {
-        const lowerInput = input.toLowerCase();
-
-        // Handle common typos and variations
-        if (/\b(react|reac|reactjs)\b/i.test(input) || lowerInput.includes('jsx')) return 'React';
-        if (/\b(vue|vuejs|vue\.js)\b/i.test(input)) return 'Vue.js';
-        if (/\b(angular|angualr|ng)\b/i.test(input)) return 'Angular';
-        if (/\b(node|nodejs|node\.js|node,js|express|expres)\b/i.test(input)) return 'Node.js';
-        if (/\b(python|py|django|flask|fastapi)\b/i.test(input)) return 'Python';
-        if (/\b(typescript|ts|typescirpt)\b/i.test(input)) return 'TypeScript';
-        if (/\b(javascript|js|ecmascript)\b/i.test(input)) return 'JavaScript';
-        if (/\b(java|spring|springboot)\b/i.test(input) && !/script/i.test(input)) return 'Java'; // Check after javascript
-        if (/\b(c#|csharp|dotnet|\.net|asp\.net)\b/i.test(input)) return 'C#';
-        if (/\b(go|golang)\b/i.test(input)) return 'Go';
-        if (/\b(rust|rustlang)\b/i.test(input)) return 'Rust';
-        if (/\b(php|laravel|symfony)\b/i.test(input)) return 'PHP';
-
-        return null;
+        const languageService = LanguageService.getInstance();
+        return languageService.detectLanguageFromText(input);
     }
 
     /**

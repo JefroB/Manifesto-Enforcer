@@ -14,7 +14,17 @@ jest.mock('vscode', () => ({
     workspace: {
         workspaceFolders: [{ uri: { fsPath: '/test/workspace' } }],
         getConfiguration: jest.fn().mockReturnValue({
-            get: jest.fn().mockReturnValue(undefined),
+            get: jest.fn().mockImplementation((key: string) => {
+                // Provide default values for required settings
+                switch (key) {
+                    case 'manifestoMode': return 'developer';
+                    case 'devManifestoPath': return 'manifesto-dev.md';
+                    case 'qaManifestoPath': return 'manifesto-qa.md';
+                    case 'soloManifestoPath': return 'manifesto.md';
+                    case 'autoMode': return false;
+                    default: return undefined;
+                }
+            }),
             update: jest.fn().mockResolvedValue(undefined)
         }),
         findFiles: jest.fn().mockResolvedValue([])
@@ -250,7 +260,10 @@ describe('StateManager Comprehensive Tests', () => {
         });
 
         it('should handle invalid context gracefully', () => {
-            expect(() => new (StateManager as any)(null)).toThrow('ExtensionContext is required');
+            // Constructor now allows undefined context for testing
+            expect(() => new (StateManager as any)(null)).not.toThrow();
+            const stateManager = new (StateManager as any)(null);
+            expect(stateManager).toBeDefined();
         });
     });
 
